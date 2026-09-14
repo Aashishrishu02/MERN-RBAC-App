@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 
-let memoryServer: MongoMemoryServer | null = null;
+let memoryServer: any = null;
 
 export const connectDB = async (): Promise<void> => {
   const connStr = process.env.MONGODB_URI || 'mongodb://localhost:27017/fieldops_access_test';
@@ -22,6 +21,9 @@ export const connectDB = async (): Promise<void> => {
     console.log(`🔄 Starting fallback In-Memory MongoDB Server for local development...`);
     
     try {
+      // Dynamically load mongodb-memory-server only in local development fallback
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { MongoMemoryServer } = require('mongodb-memory-server');
       memoryServer = await MongoMemoryServer.create();
       const memUri = memoryServer.getUri();
       const conn = await mongoose.connect(memUri);
