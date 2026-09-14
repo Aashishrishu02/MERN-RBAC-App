@@ -5,16 +5,21 @@ let memoryServer: MongoMemoryServer | null = null;
 
 export const connectDB = async (): Promise<void> => {
   const connStr = process.env.MONGODB_URI || 'mongodb://localhost:27017/fieldops_access_test';
+  const isProd = process.env.NODE_ENV === 'production';
 
   try {
-    // Attempt connecting to specified MONGODB_URI with 3s timeout
     const conn = await mongoose.connect(connStr, {
-      serverSelectionTimeoutMS: 3000,
+      serverSelectionTimeoutMS: isProd ? 10000 : 3000,
     });
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.log(`⚠️  Could not connect to MongoDB at ${connStr}.`);
-    console.log(`🔄 Starting fallback In-Memory MongoDB Server for local execution...`);
+    if (isProd) {
+      console.error(`❌ FATAL: Failed to connect to MongoDB Atlas in production: ${(error as Error).message}`);
+      process.exit(1);
+    }
+
+    console.log(`⚠️  Could not connect to local MongoDB at ${connStr}.`);
+    console.log(`🔄 Starting fallback In-Memory MongoDB Server for local development...`);
     
     try {
       memoryServer = await MongoMemoryServer.create();

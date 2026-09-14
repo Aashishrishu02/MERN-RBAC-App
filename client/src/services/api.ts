@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { AuthResponse, Role, Attendance, Visit } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -24,8 +24,8 @@ export const authService = {
     const res = await api.post('/auth/login', { email, password });
     return res.data;
   },
-  googleLogin: async (email: string, name?: string, googleId?: string): Promise<AuthResponse> => {
-    const res = await api.post('/auth/google', { email, name, googleId });
+  googleLogin: async (idToken: string): Promise<AuthResponse> => {
+    const res = await api.post('/auth/google', { idToken });
     return res.data;
   },
   register: async (name: string, email: string, password: string, roleId?: string): Promise<AuthResponse> => {

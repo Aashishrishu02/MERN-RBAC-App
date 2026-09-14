@@ -12,10 +12,29 @@ import visitRoutes from './routes/visitRoutes';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = Number(process.env.PORT) || 5001;
 
-// Middleware
-app.use(cors());
+// Production CORS Configuration
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
+].filter(Boolean) as string[];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production' || origin.endsWith('.vercel.app')) {
+        callback(null, true);
+      } else {
+        callback(null, true);
+      }
+    },
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 // API Routes
@@ -30,10 +49,11 @@ app.get('/api/health', (req: Request, res: Response) => {
     status: 'UP',
     timestamp: new Date(),
     service: 'FieldOps Access Test API',
+    environment: process.env.NODE_ENV || 'development',
   });
 });
 
-// Serve frontend static files in production
+// Serve static assets if running unified production server
 const clientBuildPath = path.join(__dirname, '../../client/dist');
 app.use(express.static(clientBuildPath));
 
@@ -56,13 +76,13 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
-// Start Server
+// Start Server listening on 0.0.0.0
 const startServer = async () => {
   await connectDB();
   await seedDatabase();
 
-  app.listen(PORT, () => {
-    console.log(`🚀 FieldOps Server listening on port ${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 FieldOps Server listening on 0.0.0.0:${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   });
 };
