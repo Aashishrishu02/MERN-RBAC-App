@@ -2,7 +2,36 @@
 import axios from 'axios';
 import { AuthResponse, Role, Attendance, Visit } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api';
+export const formatApiUrl = (rawUrl?: string): string => {
+  if (!rawUrl || !rawUrl.trim()) {
+    return '/api';
+  }
+
+  let url = rawUrl.trim();
+
+  // 1. Fix malformed protocol (e.g. https// -> https://, http// -> http://)
+  if (url.startsWith('https//')) {
+    url = url.replace('https//', 'https://');
+  } else if (url.startsWith('http//')) {
+    url = url.replace('http//', 'http://');
+  }
+
+  // 2. Fix duplicate domain suffixes (e.g. .onrender.com.onrender.com -> .onrender.com)
+  url = url.replace(/(\.onrender\.com)+/g, '.onrender.com');
+
+  // Remove trailing slashes
+  url = url.replace(/\/+$/, '');
+
+  // 3. Ensure /api path suffix is present
+  if (!url.endsWith('/api')) {
+    url = `${url}/api`;
+  }
+
+  return url;
+};
+
+const rawApiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
+const API_BASE_URL = formatApiUrl(rawApiUrl);
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
