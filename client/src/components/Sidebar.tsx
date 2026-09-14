@@ -6,13 +6,19 @@ import {
   MapPin,
   ShieldAlert,
   LogOut,
-  ShieldCheck,
-  UserCheck,
+  Shield,
+  User,
+  X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Permission } from '../types';
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) => {
   const { user, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
 
@@ -49,109 +55,153 @@ export const Sidebar: React.FC = () => {
   ];
 
   return (
-    <aside
-      style={{
-        width: '260px',
-        background: 'rgba(15, 23, 42, 0.95)',
-        borderRight: '1px solid rgba(255, 255, 255, 0.1)',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '1.5rem 1rem',
-      }}
-    >
-      {/* Brand Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem', padding: '0 0.5rem' }}>
+    <>
+      {/* Mobile Backdrop */}
+      {mobileOpen && (
         <div
+          onClick={onCloseMobile}
           style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            boxShadow: '0 4px 15px rgba(99, 102, 241, 0.4)',
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.6)',
+            zIndex: 40,
           }}
-        >
-          <ShieldCheck size={24} />
-        </div>
-        <div>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc', lineHeight: 1.2 }}>
-            FieldOps
-          </h2>
-          <span style={{ fontSize: '0.75rem', color: '#6366f1', fontWeight: 600 }}>Access Test RBAC</span>
-        </div>
-      </div>
-
-      {/* User Persona Card */}
-      {user && (
-        <div
-          style={{
-            background: 'rgba(30, 41, 59, 0.6)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
-            padding: '0.85rem',
-            marginBottom: '1.5rem',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
-            <UserCheck size={18} color="#a5b4fc" />
-            <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc' }}>{user.name}</span>
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {user.email}
-          </div>
-          <span className="badge badge-purple">
-            Role: {user.role?.name || 'Unassigned'}
-          </span>
-        </div>
+        />
       )}
 
-      {/* Navigation */}
-      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', padding: '0 0.5rem 0.4rem 0.5rem', letterSpacing: '0.05em' }}>
-          Navigation
+      <aside
+        style={{
+          width: '240px',
+          background: 'var(--bg-sidebar)',
+          borderRight: '1px solid var(--border-default)',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '1.25rem 0.85rem',
+          zIndex: 50,
+          transition: 'transform 0.2s ease',
+        }}
+        className={mobileOpen ? 'sidebar-mobile-open' : 'sidebar-desktop'}
+      >
+        {/* Brand Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', padding: '0 0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: 'var(--primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+              }}
+            >
+              <Shield size={18} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                FieldOps
+              </h2>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Access Portal</span>
+            </div>
+          </div>
+
+          {onCloseMobile && (
+            <button
+              onClick={onCloseMobile}
+              style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+            >
+              <X size={20} />
+            </button>
+          )}
         </div>
-        {navItems
-          .filter((item) => item.show)
-          .map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                style={({ isActive }) => ({
+
+        {/* User Profile Summary */}
+        {user && (
+          <div
+            style={{
+              background: 'var(--bg-card-subtle)',
+              border: '1px solid var(--border-default)',
+              borderRadius: '8px',
+              padding: '0.75rem',
+              marginBottom: '1.25rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
+              <div
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  background: 'var(--border-default)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.8rem',
-                  padding: '0.75rem 1rem',
-                  borderRadius: '10px',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                  color: isActive ? '#ffffff' : '#94a3b8',
-                  background: isActive ? 'linear-gradient(90deg, rgba(99, 102, 241, 0.25) 0%, rgba(139, 92, 246, 0.15) 100%)' : 'transparent',
-                  borderLeft: isActive ? '3px solid #6366f1' : '3px solid transparent',
-                  transition: 'all 0.2s ease',
-                })}
+                  justifyContent: 'center',
+                  color: 'var(--text-secondary)',
+                }}
               >
-                <Icon size={18} />
-                <span>{item.label}</span>
-              </NavLink>
-            );
-          })}
-      </nav>
+                <User size={14} />
+              </div>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.name}
+              </span>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '0.4rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user.email}
+            </div>
+            <span className="badge badge-primary" style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem' }}>
+              {user.role?.name || 'User'}
+            </span>
+          </div>
+        )}
 
-      {/* Logout Button */}
-      <button
-        onClick={handleLogout}
-        className="btn btn-secondary"
-        style={{ width: '100%', justifyContent: 'flex-start', color: '#f43f5e', borderColor: 'rgba(244, 63, 94, 0.2)' }}
-      >
-        <LogOut size={18} />
-        <span>Sign Out</span>
-      </button>
-    </aside>
+        {/* Navigation Section */}
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', padding: '0 0.5rem 0.4rem 0.5rem', letterSpacing: '0.06em' }}>
+            Menu
+          </div>
+          {navItems
+            .filter((item) => item.show)
+            .map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={onCloseMobile}
+                  style={({ isActive }) => ({
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.7rem',
+                    padding: '0.6rem 0.75rem',
+                    borderRadius: '6px',
+                    fontSize: '0.85rem',
+                    fontWeight: isActive ? 600 : 500,
+                    textDecoration: 'none',
+                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    background: isActive ? 'var(--bg-card-subtle)' : 'transparent',
+                    borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent',
+                    transition: 'all 0.15s ease',
+                  })}
+                >
+                  <Icon size={16} />
+                  <span>{item.label}</span>
+                </NavLink>
+              );
+            })}
+        </nav>
+
+        {/* Sign Out Button */}
+        <button
+          onClick={handleLogout}
+          className="btn btn-secondary"
+          style={{ width: '100%', justifyContent: 'flex-start', color: '#f87171', borderColor: 'var(--border-default)', fontSize: '0.8rem' }}
+        >
+          <LogOut size={16} />
+          <span>Sign Out</span>
+        </button>
+      </aside>
+    </>
   );
 };

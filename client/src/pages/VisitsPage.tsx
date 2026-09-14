@@ -68,64 +68,44 @@ export const VisitsPage: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-canvas)' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Navbar title="Field Visit Management" />
 
         <div className="main-content">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Client & Store Visits Log</h2>
-              <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '0.2rem' }}>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Client & Store Visits Log</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.25rem', margin: 0 }}>
                 Track field visits, client negotiations, outcomes, and geographic locations.
               </p>
             </div>
 
             <PermissionGate permission={Permission.SAVE_VISIT}>
               <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">
-                <Plus size={18} /> Register New Visit
+                <Plus size={16} /> Register New Visit
               </button>
             </PermissionGate>
           </div>
 
           {error && (
-            <div
-              style={{
-                background: 'rgba(244, 63, 94, 0.15)',
-                border: '1px solid rgba(244, 63, 94, 0.3)',
-                borderRadius: '8px',
-                padding: '0.75rem 1rem',
-                color: '#fda4af',
-                fontSize: '0.85rem',
-                marginBottom: '1.5rem',
-              }}
-            >
+            <div className="alert alert-danger" style={{ marginBottom: '1.25rem' }}>
               {error}
             </div>
           )}
 
           {success && (
-            <div
-              style={{
-                background: 'rgba(16, 185, 129, 0.15)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                borderRadius: '8px',
-                padding: '0.75rem 1rem',
-                color: '#6ee7b7',
-                fontSize: '0.85rem',
-                marginBottom: '1.5rem',
-              }}
-            >
+            <div className="alert alert-success" style={{ marginBottom: '1.25rem' }}>
               {success}
             </div>
           )}
 
           {/* Self Visits Table (Permission Gate: READ_SELF_VISIT) */}
           <PermissionGate permission={Permission.READ_SELF_VISIT}>
-            <div className="glass-panel" style={{ padding: '1.75rem', marginBottom: '2rem' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1rem' }}>My Registered Field Visits</h3>
+            <div className="glass-panel" style={{ padding: '1.75rem', marginBottom: '1.75rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 1rem 0', color: 'var(--text-primary)' }}>My Registered Field Visits</h3>
               {selfVisits.length === 0 ? (
-                <div style={{ color: '#64748b', fontSize: '0.9rem', padding: '1rem 0' }}>No personal field visits logged yet.</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '1rem 0', textAlign: 'center' }}>No personal field visits logged yet.</div>
               ) : (
                 <div className="table-container">
                   <table className="data-table">
@@ -142,12 +122,12 @@ export const VisitsPage: React.FC = () => {
                       {selfVisits.map((v) => (
                         <tr key={v._id}>
                           <td>{new Date(v.visitDate).toLocaleString()}</td>
-                          <td style={{ fontWeight: 700, color: '#f8fafc' }}>{v.customerName}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{v.customerName}</td>
                           <td>{v.purpose}</td>
                           <td>
                             <span className="badge badge-emerald">{v.outcome}</span>
                           </td>
-                          <td style={{ color: '#94a3b8' }}>{v.locationAddress}</td>
+                          <td style={{ color: 'var(--text-muted)' }}>{v.locationAddress}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -161,11 +141,11 @@ export const VisitsPage: React.FC = () => {
           <PermissionGate permission={Permission.READ_ALL_VISIT}>
             <div className="glass-panel" style={{ padding: '1.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                <UserCheck size={20} color="#8b5cf6" />
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Team Visits (Manager / Owner View)</h3>
+                <UserCheck size={18} color="#c084fc" />
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Team Visits (Manager / Owner View)</h3>
               </div>
               {allVisits.length === 0 ? (
-                <div style={{ color: '#64748b', fontSize: '0.9rem', padding: '1rem 0' }}>No team visit records found.</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '1rem 0', textAlign: 'center' }}>No team visit records found.</div>
               ) : (
                 <div className="table-container">
                   <table className="data-table">
@@ -184,14 +164,14 @@ export const VisitsPage: React.FC = () => {
                         const userObj = typeof v.userId === 'object' ? v.userId : null;
                         return (
                           <tr key={v._id}>
-                            <td style={{ fontWeight: 600, color: '#f8fafc' }}>{userObj?.name || 'Unknown'}</td>
+                            <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{userObj?.name || 'Unknown'}</td>
                             <td>{new Date(v.visitDate).toLocaleString()}</td>
-                            <td style={{ fontWeight: 700, color: '#a5b4fc' }}>{v.customerName}</td>
+                            <td style={{ fontWeight: 600, color: '#818cf8' }}>{v.customerName}</td>
                             <td>{v.purpose}</td>
                             <td>
                               <span className="badge badge-purple">{v.outcome}</span>
                             </td>
-                            <td style={{ color: '#94a3b8' }}>{v.locationAddress}</td>
+                            <td style={{ color: 'var(--text-muted)' }}>{v.locationAddress}</td>
                           </tr>
                         );
                       })}
@@ -206,13 +186,13 @@ export const VisitsPage: React.FC = () => {
           {isModalOpen && (
             <div className="modal-overlay">
               <div className="modal-content">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h3 style={{ fontSize: '1.3rem', fontWeight: 800 }}>Register Field Visit</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Register Field Visit</h3>
                   <button
                     onClick={() => setIsModalOpen(false)}
-                    style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.2rem' }}
                   >
-                    <X size={22} />
+                    <X size={20} />
                   </button>
                 </div>
 
@@ -220,11 +200,11 @@ export const VisitsPage: React.FC = () => {
                   <div className="form-group">
                     <label className="form-label">Customer / Shop Name</label>
                     <div style={{ position: 'relative' }}>
-                      <Store size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                      <Store size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                       <input
                         type="text"
                         className="form-input"
-                        style={{ paddingLeft: '2.75rem' }}
+                        style={{ paddingLeft: '2.5rem' }}
                         placeholder="Apex Supermarket"
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
@@ -236,11 +216,11 @@ export const VisitsPage: React.FC = () => {
                   <div className="form-group">
                     <label className="form-label">Purpose of Visit</label>
                     <div style={{ position: 'relative' }}>
-                      <Target size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                      <Target size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                       <input
                         type="text"
                         className="form-input"
-                        style={{ paddingLeft: '2.75rem' }}
+                        style={{ paddingLeft: '2.5rem' }}
                         placeholder="Stock Audit & Restock Order"
                         value={purpose}
                         onChange={(e) => setPurpose(e.target.value)}
@@ -252,11 +232,11 @@ export const VisitsPage: React.FC = () => {
                   <div className="form-group">
                     <label className="form-label">Visit Outcome / Result</label>
                     <div style={{ position: 'relative' }}>
-                      <CheckCircle2 size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                      <CheckCircle2 size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                       <input
                         type="text"
                         className="form-input"
-                        style={{ paddingLeft: '2.75rem' }}
+                        style={{ paddingLeft: '2.5rem' }}
                         placeholder="Order placed: 50 units"
                         value={outcome}
                         onChange={(e) => setOutcome(e.target.value)}
@@ -268,11 +248,11 @@ export const VisitsPage: React.FC = () => {
                   <div className="form-group">
                     <label className="form-label">Location / Address</label>
                     <div style={{ position: 'relative' }}>
-                      <MapPin size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                      <MapPin size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                       <input
                         type="text"
                         className="form-input"
-                        style={{ paddingLeft: '2.75rem' }}
+                        style={{ paddingLeft: '2.5rem' }}
                         placeholder="123 Commerce St, Downtown"
                         value={locationAddress}
                         onChange={(e) => setLocationAddress(e.target.value)}
@@ -281,7 +261,7 @@ export const VisitsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
                     <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary" style={{ flex: 1 }}>
                       Cancel
                     </button>
@@ -298,3 +278,4 @@ export const VisitsPage: React.FC = () => {
     </div>
   );
 };
+

@@ -20,7 +20,7 @@ export const Dashboard: React.FC = () => {
   const allPermissionsList = Object.values(Permission);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-canvas)' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Navbar title="Console Dashboard" />
 
@@ -29,41 +29,41 @@ export const Dashboard: React.FC = () => {
           <div
             className="glass-panel"
             style={{
-              padding: '2rem',
-              marginBottom: '2rem',
-              background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(99, 102, 241, 0.15) 100%)',
-              border: '1px solid rgba(99, 102, 241, 0.3)',
+              padding: '1.75rem 2rem',
+              marginBottom: '1.75rem',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-color)',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.25rem' }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
-                  <span className="badge badge-purple" style={{ fontSize: '0.8rem' }}>
-                    <UserCheck size={14} /> Persona: {user?.role?.name}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                  <span className="badge badge-purple" style={{ fontSize: '0.75rem' }}>
+                    <UserCheck size={13} /> Persona: {user?.role?.name}
                   </span>
                 </div>
-                <h2 style={{ fontSize: '1.8rem', fontWeight: 800 }}>
-                  Welcome back, <span className="gradient-text">{user?.name}</span> 👋
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  Welcome back, <span>{user?.name}</span> 👋
                 </h2>
-                <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginTop: '0.4rem', maxWidth: '650px' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.35rem', maxWidth: '650px', margin: 0 }}>
                   FieldOps Access Control system is enforcing fine-grained permissions dynamically stored in database roles.
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', gap: '0.65rem' }}>
                 {hasPermission(Permission.CLOCK_IN_OUT) && (
                   <Link to="/attendance" className="btn btn-primary">
-                    <Clock size={16} /> Attendance Clock
+                    <Clock size={15} /> Attendance Clock
                   </Link>
                 )}
                 {hasPermission(Permission.SAVE_VISIT) && (
                   <Link to="/visits" className="btn btn-success">
-                    <MapPin size={16} /> Register Visit
+                    <MapPin size={15} /> Register Visit
                   </Link>
                 )}
                 {hasPermission(Permission.MANAGE_ROLES) && (
                   <Link to="/roles" className="btn btn-secondary">
-                    <ShieldAlert size={16} /> Manage Roles
+                    <ShieldAlert size={15} /> Manage Roles
                   </Link>
                 )}
               </div>
@@ -71,87 +71,87 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Quick Stats Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-            <div className="glass-panel" style={{ padding: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                <span style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600 }}>Active Role</span>
-                <ShieldCheck size={22} color="#6366f1" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem', marginBottom: '1.75rem' }}>
+            <div className="glass-panel" style={{ padding: '1.35rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Role</span>
+                <ShieldCheck size={20} color="#818cf8" />
               </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f8fafc' }}>{user?.role?.name}</div>
-              <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.4rem' }}>
-                Configurable permissions stored in Mongo DB
-              </div>
-            </div>
-
-            <div className="glass-panel" style={{ padding: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                <span style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600 }}>Permissions Count</span>
-                <Zap size={22} color="#10b981" />
-              </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#6ee7b7' }}>
-                {user?.permissions?.length || 0} / {allPermissionsList.length}
-              </div>
-              <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.4rem' }}>
-                Active capabilities enabled for your account
+              <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-primary)' }}>{user?.role?.name}</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                Dynamic permissions stored in MongoDB
               </div>
             </div>
 
-            <div className="glass-panel" style={{ padding: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                <span style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600 }}>Session Account</span>
-                <UserCheck size={22} color="#8b5cf6" />
+            <div className="glass-panel" style={{ padding: '1.35rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Granted Capabilities</span>
+                <Zap size={20} color="#34d399" />
               </div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#34d399' }}>
+                {user?.permissions?.length || 0} / {allPermissionsList.length} Enabled
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                Active capabilities in your current session
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '1.35rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Session Account</span>
+                <UserCheck size={20} color="#c084fc" />
+              </div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {user?.email}
               </div>
-              <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.4rem' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
                 Authenticated via JWT Bearer Token
               </div>
             </div>
           </div>
 
           {/* Granted Permissions Matrix Card */}
-          <div className="glass-panel" style={{ padding: '2rem' }}>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Your Active Permission Matrix</h3>
-              <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '0.2rem' }}>
-                This live grid displays which backend permissions are granted to your current session.
+          <div className="glass-panel" style={{ padding: '1.75rem' }}>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Session Permission Matrix</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', marginTop: '0.25rem', margin: 0 }}>
+                This live grid displays backend permissions currently granted to your active session.
               </p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.85rem' }}>
               {allPermissionsList.map((perm) => {
                 const isGranted = hasPermission(perm);
                 return (
                   <div
                     key={perm}
                     style={{
-                      background: isGranted ? 'rgba(16, 185, 129, 0.08)' : 'rgba(15, 23, 42, 0.6)',
-                      border: `1px solid ${isGranted ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.05)'}`,
-                      borderRadius: '12px',
-                      padding: '1rem',
+                      background: isGranted ? 'rgba(16, 185, 129, 0.06)' : 'var(--bg-canvas)',
+                      border: `1px solid ${isGranted ? 'rgba(16, 185, 129, 0.25)' : 'var(--border-color)'}`,
+                      borderRadius: '8px',
+                      padding: '0.85rem',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.75rem',
+                      gap: '0.65rem',
                     }}
                   >
                     {isGranted ? (
-                      <CheckCircle size={20} color="#10b981" />
+                      <CheckCircle size={18} color="#34d399" />
                     ) : (
-                      <XCircle size={20} color="#64748b" />
+                      <XCircle size={18} color="var(--text-muted)" />
                     )}
                     <div>
                       <div
                         style={{
-                          fontSize: '0.85rem',
-                          fontWeight: 700,
-                          color: isGranted ? '#6ee7b7' : '#64748b',
+                          fontSize: '0.825rem',
+                          fontWeight: 600,
+                          color: isGranted ? '#6ee7b7' : 'var(--text-muted)',
                         }}
                       >
                         {perm}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: isGranted ? '#a7f3d0' : '#475569' }}>
-                        {isGranted ? 'GRANTED & ENFORCED' : 'DENIED / REVOKED'}
+                      <div style={{ fontSize: '0.725rem', color: isGranted ? '#34d399' : 'var(--text-muted)', marginTop: '0.1rem' }}>
+                        {isGranted ? 'GRANTED' : 'DENIED'}
                       </div>
                     </div>
                   </div>
@@ -164,3 +164,4 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+

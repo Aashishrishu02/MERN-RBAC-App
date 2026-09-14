@@ -43,72 +43,53 @@ export const ResetPassword: React.FC = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: '2.5rem' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', background: 'var(--bg-canvas)' }}>
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '440px', padding: '2.25rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
           <div
             style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '16px',
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              width: '48px',
+              height: '48px',
+              borderRadius: '10px',
+              background: 'rgba(99, 102, 241, 0.12)',
+              border: '1px solid rgba(99, 102, 241, 0.25)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'white',
-              marginBottom: '1rem',
-              boxShadow: '0 8px 25px rgba(99, 102, 241, 0.4)',
+              color: '#818cf8',
+              marginBottom: '0.85rem',
             }}
           >
-            <KeyRound size={32} />
+            <KeyRound size={26} />
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Reset Password</h1>
-          <p style={{ fontSize: '0.9rem', color: '#94a3b8', marginTop: '0.4rem' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Reset Password</h1>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
             Set a new secure password for your account
           </p>
         </div>
 
         {error && (
-          <div
-            style={{
-              background: 'rgba(244, 63, 94, 0.15)',
-              border: '1px solid rgba(244, 63, 94, 0.3)',
-              borderRadius: '8px',
-              padding: '0.75rem 1rem',
-              color: '#fda4af',
-              fontSize: '0.85rem',
-              marginBottom: '1.5rem',
-            }}
-          >
+          <div className="alert alert-danger" style={{ marginBottom: '1.25rem' }}>
             {error}
           </div>
         )}
 
         {success ? (
-          <div
-            style={{
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              borderRadius: '12px',
-              padding: '1.5rem',
-              color: '#6ee7b7',
-              textAlign: 'center',
-            }}
-          >
-            <CheckCircle2 size={40} style={{ margin: '0 auto 0.75rem auto' }} />
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.4rem' }}>Password Reset Successful!</h3>
-            <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Redirecting you to login screen...</p>
+          <div className="alert alert-success" style={{ flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '1.5rem' }}>
+            <CheckCircle2 size={32} style={{ marginBottom: '0.5rem' }} />
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--success)' }}>Password Reset Successful!</h3>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Redirecting to login screen...</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label className="form-label">New Password</label>
               <div style={{ position: 'relative' }}>
-                <Lock size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                <Lock size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   type="password"
                   className="form-input"
-                  style={{ paddingLeft: '2.75rem' }}
+                  style={{ paddingLeft: '2.5rem' }}
                   placeholder="Minimum 6 characters"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -121,11 +102,11 @@ export const ResetPassword: React.FC = () => {
             <div className="form-group">
               <label className="form-label">Confirm New Password</label>
               <div style={{ position: 'relative' }}>
-                <Lock size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                <Lock size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   type="password"
                   className="form-input"
-                  style={{ paddingLeft: '2.75rem' }}
+                  style={{ paddingLeft: '2.5rem' }}
                   placeholder="Re-enter new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -135,18 +116,19 @@ export const ResetPassword: React.FC = () => {
               </div>
             </div>
 
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={loading || !token}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.75rem' }} disabled={loading || !token}>
               <span>{loading ? 'Updating Password...' : 'Reset Password'}</span>
             </button>
           </form>
         )}
 
-        <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-          <Link to="/login" style={{ color: '#94a3b8', fontSize: '0.85rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-            <ArrowLeft size={16} /> Back to Sign In
+        <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
+          <Link to="/login" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+            <ArrowLeft size={14} /> Back to Sign In
           </Link>
         </div>
       </div>
     </div>
   );
 };
+

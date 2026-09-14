@@ -22,27 +22,29 @@ export const Navbar: React.FC<NavbarProps> = ({ title }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '1.25rem 2rem',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-        background: 'rgba(15, 23, 42, 0.4)',
-        backdropFilter: 'blur(12px)',
+        padding: '1rem 2rem',
+        borderBottom: '1px solid var(--border-color)',
+        background: 'var(--bg-surface)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 30,
       }}
     >
       <div>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f8fafc' }}>{title}</h1>
-        <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.2rem' }}>
-          Role-Based Access Control Console
+        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{title}</h1>
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem', margin: 0 }}>
+          Role-Based Access Control System
         </p>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         {user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span className="badge badge-emerald">
-              <Shield size={14} /> Active Permissions ({user.permissions?.length || 0})
+              <Shield size={13} /> {user.permissions?.length || 0} Permissions
             </span>
             <span className="badge badge-primary">
-              <Key size={14} /> {user.role?.name}
+              <Key size={13} /> {user.role?.name}
             </span>
           </div>
         )}
@@ -51,12 +53,13 @@ export const Navbar: React.FC<NavbarProps> = ({ title }) => {
           onClick={handleRefresh}
           className="btn btn-secondary"
           title="Sync latest role permissions from server"
-          style={{ padding: '0.5rem 0.85rem', fontSize: '0.8rem' }}
+          style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
         >
-          <RefreshCw size={15} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
+          <RefreshCw size={14} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
           <span>Sync Session</span>
         </button>
       </div>
     </header>
   );
 };
+

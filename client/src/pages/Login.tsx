@@ -50,7 +50,6 @@ export const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      // Passes mock_google_id_token for local development, verified cryptographically on backend
       const data = await authService.googleLogin('mock_google_id_token');
       login(data.token, data.user);
       navigate('/dashboard');
@@ -62,44 +61,34 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: '2.5rem' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', background: 'var(--bg-canvas)' }}>
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '440px', padding: '2.25rem' }}>
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
           <div
             style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '16px',
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              width: '48px',
+              height: '48px',
+              borderRadius: '10px',
+              background: 'rgba(99, 102, 241, 0.12)',
+              border: '1px solid rgba(99, 102, 241, 0.25)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'white',
-              marginBottom: '1rem',
-              boxShadow: '0 8px 25px rgba(99, 102, 241, 0.4)',
+              color: '#818cf8',
+              marginBottom: '0.85rem',
             }}
           >
-            <ShieldCheck size={32} />
+            <ShieldCheck size={26} />
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>FieldOps Access Test</h1>
-          <p style={{ fontSize: '0.9rem', color: '#94a3b8', marginTop: '0.4rem' }}>
-            Sign in to access your role-based portal
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>FieldOps Console</h1>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+            Sign in to access your RBAC workspace
           </p>
         </div>
 
         {error && (
-          <div
-            style={{
-              background: 'rgba(244, 63, 94, 0.15)',
-              border: '1px solid rgba(244, 63, 94, 0.3)',
-              borderRadius: '8px',
-              padding: '0.75rem 1rem',
-              color: '#fda4af',
-              fontSize: '0.85rem',
-              marginBottom: '1.5rem',
-            }}
-          >
+          <div className="alert alert-danger" style={{ marginBottom: '1.25rem' }}>
             {error}
           </div>
         )}
@@ -108,11 +97,11 @@ export const Login: React.FC = () => {
           <div className="form-group">
             <label className="form-label">Email Address</label>
             <div style={{ position: 'relative' }}>
-              <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+              <Mail size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
                 type="email"
                 className="form-input"
-                style={{ paddingLeft: '2.75rem' }}
+                style={{ paddingLeft: '2.5rem' }}
                 placeholder="name@fieldops.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -122,18 +111,18 @@ export const Login: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
               <label className="form-label" style={{ margin: 0 }}>Password</label>
               <Link to="/forgot-password" style={{ fontSize: '0.8rem', color: '#818cf8', textDecoration: 'none' }}>
                 Forgot Password?
               </Link>
             </div>
             <div style={{ position: 'relative' }}>
-              <Lock size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+              <Lock size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
                 type="password"
                 className="form-input"
-                style={{ paddingLeft: '2.75rem' }}
+                style={{ paddingLeft: '2.5rem' }}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -143,63 +132,63 @@ export const Login: React.FC = () => {
           </div>
 
           <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} disabled={loading}>
-            <LogIn size={18} />
+            <LogIn size={16} />
             <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
           </button>
         </form>
 
-        <div style={{ margin: '1.5rem 0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
-          <span style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>OR</span>
-          <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
+        <div style={{ margin: '1.25rem 0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>OR</span>
+          <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
         </div>
 
         <button
           onClick={handleGoogleLogin}
           className="btn btn-secondary"
-          style={{ width: '100%', marginBottom: '1.5rem' }}
+          style={{ width: '100%', marginBottom: '1.25rem' }}
           disabled={loading}
         >
-          <Chrome size={18} color="#ea4335" />
+          <Chrome size={16} color="#ea4335" />
           <span>Sign In with Google</span>
         </button>
 
         {/* Quick Demo Persona Badges */}
-        <div style={{ background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', padding: '1rem', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <UserCheck size={14} color="#6366f1" /> Quick Demo Persona Logins
+        <div style={{ background: 'var(--bg-canvas)', borderRadius: '8px', padding: '0.85rem', border: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <UserCheck size={13} color="#818cf8" /> Quick Demo Personas
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
             <button
               onClick={() => handleQuickLogin('owner@fieldops.com')}
               className="btn btn-secondary"
-              style={{ justifyContent: 'space-between', padding: '0.5rem 0.85rem', fontSize: '0.8rem' }}
+              style={{ justifyContent: 'space-between', padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
             >
-              <span style={{ fontWeight: 600, color: '#c084fc' }}>👑 Owner Account</span>
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>owner@fieldops.com</span>
+              <span style={{ fontWeight: 600, color: '#c084fc' }}>👑 Owner</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>owner@fieldops.com</span>
             </button>
 
             <button
               onClick={() => handleQuickLogin('manager@fieldops.com')}
               className="btn btn-secondary"
-              style={{ justifyContent: 'space-between', padding: '0.5rem 0.85rem', fontSize: '0.8rem' }}
+              style={{ justifyContent: 'space-between', padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
             >
-              <span style={{ fontWeight: 600, color: '#6ee7b7' }}>📊 Manager Account</span>
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>manager@fieldops.com</span>
+              <span style={{ fontWeight: 600, color: '#34d399' }}>📊 Manager</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>manager@fieldops.com</span>
             </button>
 
             <button
               onClick={() => handleQuickLogin('employee@fieldops.com')}
               className="btn btn-secondary"
-              style={{ justifyContent: 'space-between', padding: '0.5rem 0.85rem', fontSize: '0.8rem' }}
+              style={{ justifyContent: 'space-between', padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
             >
-              <span style={{ fontWeight: 600, color: '#93c5fd' }}>🚶 Field Employee Account</span>
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>employee@fieldops.com</span>
+              <span style={{ fontWeight: 600, color: '#60a5fa' }}>🚶 Field Employee</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>employee@fieldops.com</span>
             </button>
           </div>
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem', color: '#94a3b8' }}>
+        <div style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
           Don&apos;t have an account?{' '}
           <Link to="/register" style={{ color: '#818cf8', fontWeight: 600, textDecoration: 'none' }}>
             Register User
@@ -209,3 +198,4 @@ export const Login: React.FC = () => {
     </div>
   );
 };
+

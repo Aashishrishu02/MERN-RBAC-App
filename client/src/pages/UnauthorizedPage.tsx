@@ -14,68 +14,69 @@ export const UnauthorizedPage: React.FC = () => {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '2rem',
-        background: 'radial-gradient(circle at center, rgba(244, 63, 94, 0.1) 0%, transparent 70%)',
+        background: 'var(--bg-canvas)',
       }}
     >
       <div
         className="glass-panel"
         style={{
           width: '100%',
-          maxWidth: '520px',
-          padding: '3rem 2rem',
+          maxWidth: '480px',
+          padding: '2.5rem 2rem',
           textAlign: 'center',
-          borderColor: 'rgba(244, 63, 94, 0.3)',
+          border: '1px solid rgba(244, 63, 94, 0.3)',
         }}
       >
         <div
           style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '20px',
-            background: 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+            width: '52px',
+            height: '52px',
+            borderRadius: '12px',
+            background: 'rgba(244, 63, 94, 0.12)',
+            border: '1px solid rgba(244, 63, 94, 0.3)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'white',
-            marginBottom: '1.5rem',
-            boxShadow: '0 8px 30px rgba(244, 63, 94, 0.4)',
+            color: '#f43f5e',
+            marginBottom: '1.25rem',
           }}
         >
-          <ShieldAlert size={36} />
+          <ShieldAlert size={28} />
         </div>
 
-        <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#f8fafc', marginBottom: '0.5rem' }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem', margin: 0 }}>
           403 Access Denied
         </h1>
 
-        <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.5rem', marginBottom: '1.25rem', lineHeight: 1.5 }}>
           Your current account (<span style={{ color: '#fda4af', fontWeight: 600 }}>{user?.role?.name || 'Unassigned'}</span>) 
           lacks the backend permission required to view or execute actions on this resource.
         </p>
 
         <div
           style={{
-            background: 'rgba(15, 23, 42, 0.7)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
-            padding: '1rem',
-            marginBottom: '2rem',
+            background: 'var(--bg-canvas)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
+            padding: '0.85rem 1rem',
+            marginBottom: '1.5rem',
             textAlign: 'left',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 700, color: '#f43f5e', marginBottom: '0.4rem' }}>
-            <Lock size={16} /> Enforced Security Policy
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 600, color: '#f43f5e', marginBottom: '0.3rem' }}>
+            <Lock size={14} /> Enforced Security Policy
           </div>
-          <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
             Permission checks apply dynamically on both frontend route gates and Express API endpoints. 
-            If you require access, ask your system <strong>Owner</strong> to grant the necessary permission in <strong>Role Management</strong>.
+            If you require access, ask your system <strong>Owner</strong> to grant the permission in <strong>Role Management</strong>.
           </div>
         </div>
 
         <Link to="/dashboard" className="btn btn-primary" style={{ width: '100%' }}>
-          <ArrowLeft size={18} /> Return to Dashboard
+          <ArrowLeft size={16} /> Return to Dashboard
         </Link>
       </div>
     </div>
   );
 };
+

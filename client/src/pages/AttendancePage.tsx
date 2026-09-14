@@ -71,64 +71,44 @@ export const AttendancePage: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-canvas)' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Navbar title="Attendance Tracker" />
 
         <div className="main-content">
           {error && (
-            <div
-              style={{
-                background: 'rgba(244, 63, 94, 0.15)',
-                border: '1px solid rgba(244, 63, 94, 0.3)',
-                borderRadius: '8px',
-                padding: '0.75rem 1rem',
-                color: '#fda4af',
-                fontSize: '0.85rem',
-                marginBottom: '1.5rem',
-              }}
-            >
+            <div className="alert alert-danger" style={{ marginBottom: '1.25rem' }}>
               {error}
             </div>
           )}
 
           {success && (
-            <div
-              style={{
-                background: 'rgba(16, 185, 129, 0.15)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                borderRadius: '8px',
-                padding: '0.75rem 1rem',
-                color: '#6ee7b7',
-                fontSize: '0.85rem',
-                marginBottom: '1.5rem',
-              }}
-            >
+            <div className="alert alert-success" style={{ marginBottom: '1.25rem' }}>
               {success}
             </div>
           )}
 
           {/* Clock In / Clock Out Action Widget (Permission Gate: CLOCK_IN_OUT) */}
           <PermissionGate permission={Permission.CLOCK_IN_OUT}>
-            <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div className="glass-panel" style={{ padding: '1.75rem', marginBottom: '1.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                  <h2 style={{ fontSize: '1.4rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <Clock size={24} color="#6366f1" /> Attendance Punch Clock
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Clock size={20} color="#818cf8" /> Punch Clock
                   </h2>
-                  <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '0.2rem' }}>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', marginTop: '0.25rem', margin: 0 }}>
                     Register shift start and completion with optional location/task notes.
                   </p>
                 </div>
 
                 <div>
                   {activeAttendance ? (
-                    <span className="badge badge-emerald" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
-                      <CheckCircle2 size={16} /> CLOCKED IN since {new Date(activeAttendance.clockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <span className="badge badge-emerald" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }}>
+                      <CheckCircle2 size={14} /> CLOCKED IN since {new Date(activeAttendance.clockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   ) : (
-                    <span className="badge badge-amber" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
-                      Currently Off Duty
+                    <span className="badge badge-amber" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }}>
+                      Off Duty
                     </span>
                   )}
                 </div>
@@ -138,11 +118,11 @@ export const AttendancePage: React.FC = () => {
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label">Shift Note / Location (Optional)</label>
                   <div style={{ position: 'relative' }}>
-                    <MessageSquare size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                    <MessageSquare size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                     <input
                       type="text"
                       className="form-input"
-                      style={{ paddingLeft: '2.75rem' }}
+                      style={{ paddingLeft: '2.5rem' }}
                       placeholder="e.g. Starting client visits in Sector 4"
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
@@ -152,13 +132,13 @@ export const AttendancePage: React.FC = () => {
 
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                   {!activeAttendance ? (
-                    <button onClick={handleClockIn} className="btn btn-success" disabled={loading} style={{ padding: '0.85rem 1.75rem' }}>
-                      <Clock size={18} />
+                    <button onClick={handleClockIn} className="btn btn-success" disabled={loading} style={{ padding: '0.6rem 1.25rem' }}>
+                      <Clock size={16} />
                       <span>{loading ? 'Processing...' : 'Clock In Now'}</span>
                     </button>
                   ) : (
-                    <button onClick={handleClockOut} className="btn btn-danger" disabled={loading} style={{ padding: '0.85rem 1.75rem' }}>
-                      <LogOut size={18} />
+                    <button onClick={handleClockOut} className="btn btn-danger" disabled={loading} style={{ padding: '0.6rem 1.25rem' }}>
+                      <LogOut size={16} />
                       <span>{loading ? 'Processing...' : 'Clock Out'}</span>
                     </button>
                   )}
@@ -169,10 +149,10 @@ export const AttendancePage: React.FC = () => {
 
           {/* Self Attendance History Table (Permission Gate: READ_SELF_ATTENDANCE) */}
           <PermissionGate permission={Permission.READ_SELF_ATTENDANCE}>
-            <div className="glass-panel" style={{ padding: '1.75rem', marginBottom: '2rem' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1rem' }}>My Attendance Log</h3>
+            <div className="glass-panel" style={{ padding: '1.75rem', marginBottom: '1.75rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 1rem 0', color: 'var(--text-primary)' }}>My Attendance Log</h3>
               {selfAttendance.length === 0 ? (
-                <div style={{ color: '#64748b', fontSize: '0.9rem', padding: '1rem 0' }}>No personal attendance records found.</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '1rem 0', textAlign: 'center' }}>No personal attendance records found.</div>
               ) : (
                 <div className="table-container">
                   <table className="data-table">
@@ -188,7 +168,7 @@ export const AttendancePage: React.FC = () => {
                     <tbody>
                       {selfAttendance.map((rec) => (
                         <tr key={rec._id}>
-                          <td>{new Date(rec.clockIn).toLocaleDateString()}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{new Date(rec.clockIn).toLocaleDateString()}</td>
                           <td>{new Date(rec.clockIn).toLocaleTimeString()}</td>
                           <td>{rec.clockOut ? new Date(rec.clockOut).toLocaleTimeString() : '—'}</td>
                           <td>
@@ -196,7 +176,7 @@ export const AttendancePage: React.FC = () => {
                               {rec.status}
                             </span>
                           </td>
-                          <td style={{ color: '#94a3b8' }}>{rec.note || '—'}</td>
+                          <td style={{ color: 'var(--text-muted)' }}>{rec.note || '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -210,11 +190,11 @@ export const AttendancePage: React.FC = () => {
           <PermissionGate permission={Permission.READ_ALL_ATTENDANCE}>
             <div className="glass-panel" style={{ padding: '1.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                <UserCheck size={20} color="#8b5cf6" />
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Team Attendance (Manager / Owner View)</h3>
+                <UserCheck size={18} color="#c084fc" />
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Team Attendance (Manager / Owner View)</h3>
               </div>
               {allAttendance.length === 0 ? (
-                <div style={{ color: '#64748b', fontSize: '0.9rem', padding: '1rem 0' }}>No team attendance records found.</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '1rem 0', textAlign: 'center' }}>No team attendance records found.</div>
               ) : (
                 <div className="table-container">
                   <table className="data-table">
@@ -233,8 +213,8 @@ export const AttendancePage: React.FC = () => {
                         const userObj = typeof rec.userId === 'object' ? rec.userId : null;
                         return (
                           <tr key={rec._id}>
-                            <td style={{ fontWeight: 600, color: '#f8fafc' }}>{userObj?.name || 'Unknown Employee'}</td>
-                            <td style={{ color: '#94a3b8' }}>{userObj?.email || 'N/A'}</td>
+                            <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{userObj?.name || 'Unknown Employee'}</td>
+                            <td style={{ color: 'var(--text-muted)' }}>{userObj?.email || 'N/A'}</td>
                             <td>{new Date(rec.clockIn).toLocaleString()}</td>
                             <td>{rec.clockOut ? new Date(rec.clockOut).toLocaleString() : '—'}</td>
                             <td>
@@ -242,7 +222,7 @@ export const AttendancePage: React.FC = () => {
                                 {rec.status}
                               </span>
                             </td>
-                            <td style={{ color: '#94a3b8' }}>{rec.note || '—'}</td>
+                            <td style={{ color: 'var(--text-muted)' }}>{rec.note || '—'}</td>
                           </tr>
                         );
                       })}
@@ -257,3 +237,4 @@ export const AttendancePage: React.FC = () => {
     </div>
   );
 };
+
