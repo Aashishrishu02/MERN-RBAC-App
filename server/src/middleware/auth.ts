@@ -3,7 +3,12 @@ import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
 import { IRole } from '../models/Role';
 
-export interface AuthRequest extends Request {
+export interface AuthRequest<
+  P = Record<string, any>,
+  ResBody = any,
+  ReqBody = any,
+  ReqQuery = Record<string, any>
+> extends Request<P, ResBody, ReqBody, ReqQuery> {
   user?: {
     id: string;
     email: string;
