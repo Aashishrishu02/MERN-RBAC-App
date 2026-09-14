@@ -71,7 +71,7 @@ export const AttendancePage: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-canvas)' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-app)' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Navbar title="Attendance Tracker" />
 
@@ -88,13 +88,13 @@ export const AttendancePage: React.FC = () => {
             </div>
           )}
 
-          {/* Clock In / Clock Out Action Widget (Permission Gate: CLOCK_IN_OUT) */}
+          {/* Punch Clock Widget (Permission Gate: CLOCK_IN_OUT) */}
           <PermissionGate permission={Permission.CLOCK_IN_OUT}>
-            <div className="glass-panel" style={{ padding: '1.75rem', marginBottom: '1.75rem' }}>
+            <div className="saas-card" style={{ padding: '1.75rem', marginBottom: '1.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                   <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Clock size={20} color="#818cf8" /> Punch Clock
+                    <Clock size={20} color="#0f172a" /> Punch Clock
                   </h2>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', marginTop: '0.25rem', margin: 0 }}>
                     Register shift start and completion with optional location/task notes.
@@ -149,10 +149,10 @@ export const AttendancePage: React.FC = () => {
 
           {/* Self Attendance History Table (Permission Gate: READ_SELF_ATTENDANCE) */}
           <PermissionGate permission={Permission.READ_SELF_ATTENDANCE}>
-            <div className="glass-panel" style={{ padding: '1.75rem', marginBottom: '1.75rem' }}>
+            <div className="saas-card" style={{ padding: '1.75rem', marginBottom: '1.75rem' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 1rem 0', color: 'var(--text-primary)' }}>My Attendance Log</h3>
               {selfAttendance.length === 0 ? (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '1rem 0', textAlign: 'center' }}>No personal attendance records found.</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '1.5rem 0', textAlign: 'center' }}>No personal attendance records found.</div>
               ) : (
                 <div className="table-container">
                   <table className="data-table">
@@ -188,13 +188,13 @@ export const AttendancePage: React.FC = () => {
 
           {/* All Team Attendance Table (Permission Gate: READ_ALL_ATTENDANCE) */}
           <PermissionGate permission={Permission.READ_ALL_ATTENDANCE}>
-            <div className="glass-panel" style={{ padding: '1.75rem' }}>
+            <div className="saas-card" style={{ padding: '1.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                <UserCheck size={18} color="#c084fc" />
+                <UserCheck size={18} color="#4f46e5" />
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Team Attendance (Manager / Owner View)</h3>
               </div>
               {allAttendance.length === 0 ? (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '1rem 0', textAlign: 'center' }}>No team attendance records found.</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '1.5rem 0', textAlign: 'center' }}>No team attendance records found.</div>
               ) : (
                 <div className="table-container">
                   <table className="data-table">
@@ -237,4 +237,3 @@ export const AttendancePage: React.FC = () => {
     </div>
   );
 };
-

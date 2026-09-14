@@ -6,7 +6,6 @@ import {
   MapPin,
   ShieldAlert,
   LogOut,
-  Shield,
   User,
   X,
 } from 'lucide-react';
@@ -56,14 +55,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
 
   return (
     <>
-      {/* Mobile Backdrop */}
+      {/* Mobile Drawer Backdrop */}
       {mobileOpen && (
         <div
           onClick={onCloseMobile}
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.6)',
+            background: 'rgba(15, 23, 42, 0.6)',
             zIndex: 40,
           }}
         />
@@ -71,95 +70,58 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
 
       <aside
         style={{
-          width: '240px',
+          width: '230px',
           background: 'var(--bg-sidebar)',
-          borderRight: '1px solid var(--border-default)',
           display: 'flex',
           flexDirection: 'column',
           padding: '1.25rem 0.85rem',
           zIndex: 50,
           transition: 'transform 0.2s ease',
+          height: '100vh',
+          position: 'sticky',
+          top: 0,
         }}
         className={mobileOpen ? 'sidebar-mobile-open' : 'sidebar-desktop'}
       >
         {/* Brand Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', padding: '0 0.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.75rem', padding: '0 0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <div
               style={{
                 width: '32px',
                 height: '32px',
-                borderRadius: '8px',
-                background: 'var(--primary)',
+                borderRadius: '6px',
+                background: '#334155',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'white',
+                color: '#ffffff',
               }}
             >
-              <Shield size={18} />
+              <MapPin size={18} />
             </div>
             <div>
-              <h2 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#ffffff', lineHeight: 1.2, margin: 0 }}>
                 FieldOps
               </h2>
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Access Portal</span>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 500 }}>Field Management</span>
             </div>
           </div>
 
           {onCloseMobile && (
             <button
               onClick={onCloseMobile}
-              style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
             >
               <X size={20} />
             </button>
           )}
         </div>
 
-        {/* User Profile Summary */}
-        {user && (
-          <div
-            style={{
-              background: 'var(--bg-card-subtle)',
-              border: '1px solid var(--border-default)',
-              borderRadius: '8px',
-              padding: '0.75rem',
-              marginBottom: '1.25rem',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
-              <div
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '50%',
-                  background: 'var(--border-default)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--text-secondary)',
-                }}
-              >
-                <User size={14} />
-              </div>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {user.name}
-              </span>
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '0.4rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user.email}
-            </div>
-            <span className="badge badge-primary" style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem' }}>
-              {user.role?.name || 'User'}
-            </span>
-          </div>
-        )}
-
         {/* Navigation Section */}
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', padding: '0 0.5rem 0.4rem 0.5rem', letterSpacing: '0.06em' }}>
-            Menu
+          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', padding: '0 0.5rem 0.4rem 0.5rem', letterSpacing: '0.06em' }}>
+            Main Menu
           </div>
           {navItems
             .filter((item) => item.show)
@@ -179,26 +141,70 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
                     fontSize: '0.85rem',
                     fontWeight: isActive ? 600 : 500,
                     textDecoration: 'none',
-                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    background: isActive ? 'var(--bg-card-subtle)' : 'transparent',
-                    borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent',
+                    color: isActive ? '#ffffff' : '#94a3b8',
+                    background: isActive ? '#1e293b' : 'transparent',
                     transition: 'all 0.15s ease',
                   })}
                 >
-                  <Icon size={16} />
+                  <Icon size={16} color="#cbd5e1" />
                   <span>{item.label}</span>
                 </NavLink>
               );
             })}
         </nav>
 
-        {/* Sign Out Button */}
+        {/* Bottom User Info & Sign Out */}
+        {user && (
+          <div
+            style={{
+              background: '#1e293b',
+              borderRadius: '8px',
+              padding: '0.75rem',
+              marginTop: 'auto',
+              marginBottom: '0.75rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+              <div
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  background: '#334155',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#94a3b8',
+                }}
+              >
+                <User size={13} />
+              </div>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.name}
+              </span>
+            </div>
+            <div style={{ fontSize: '0.7rem', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '0.35rem' }}>
+              {user.email}
+            </div>
+            <span className="badge badge-primary" style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem' }}>
+              {user.role?.name || 'User'}
+            </span>
+          </div>
+        )}
+
         <button
           onClick={handleLogout}
-          className="btn btn-secondary"
-          style={{ width: '100%', justifyContent: 'flex-start', color: '#f87171', borderColor: 'var(--border-default)', fontSize: '0.8rem' }}
+          className="btn"
+          style={{
+            width: '100%',
+            justifyContent: 'flex-start',
+            background: 'transparent',
+            color: '#f87171',
+            border: '1px solid #334155',
+            fontSize: '0.8rem',
+          }}
         >
-          <LogOut size={16} />
+          <LogOut size={15} />
           <span>Sign Out</span>
         </button>
       </aside>

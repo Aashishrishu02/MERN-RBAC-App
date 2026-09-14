@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShieldCheck, LogIn, Lock, Mail, UserCheck, Chrome } from 'lucide-react';
+import { Mail, Lock, LogIn } from 'lucide-react';
 import { authService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { AuthLayout } from '../components/AuthLayout';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -61,141 +62,202 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', background: 'var(--bg-canvas)' }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '440px', padding: '2.25rem' }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '10px',
-              background: 'rgba(99, 102, 241, 0.12)',
-              border: '1px solid rgba(99, 102, 241, 0.25)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#818cf8',
-              marginBottom: '0.85rem',
-            }}
-          >
-            <ShieldCheck size={26} />
+    <AuthLayout>
+      <div style={{ marginBottom: '1.75rem' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.35rem' }}>
+          Sign in to your account
+        </h2>
+        <p style={{ fontSize: '0.875rem', color: '#64748b' }}>
+          Don&apos;t have an account?{' '}
+          <Link to="/register" style={{ color: '#0f172a', fontWeight: 600, textDecoration: 'none' }}>
+            Create one
+          </Link>
+        </p>
+      </div>
+
+      {error && (
+        <div className="alert alert-danger" style={{ marginBottom: '1.25rem' }}>
+          {error}
+        </div>
+      )}
+
+      {/* Google Login CTA */}
+      <button
+        type="button"
+        onClick={handleGoogleLogin}
+        disabled={loading}
+        style={{
+          width: '100%',
+          height: '42px',
+          background: '#ffffff',
+          border: '1px solid #cbd5e1',
+          borderRadius: '6px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.6rem',
+          fontSize: '0.875rem',
+          fontWeight: 600,
+          color: '#0f172a',
+          cursor: 'pointer',
+          transition: 'all 0.15s ease',
+          boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        }}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path
+            fill="#4285F4"
+            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+          />
+          <path
+            fill="#34A853"
+            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+          />
+          <path
+            fill="#FBBC05"
+            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+          />
+          <path
+            fill="#EA4335"
+            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+          />
+        </svg>
+        <span>Continue with Google</span>
+      </button>
+
+      {/* Divider */}
+      <div style={{ margin: '1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+        <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>or continue with email</span>
+        <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+      </div>
+
+      <form onSubmit={handleLogin}>
+        <div className="form-group">
+          <label className="form-label">Email address</label>
+          <div style={{ position: 'relative' }}>
+            <Mail size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <input
+              type="email"
+              className="form-input"
+              style={{ paddingLeft: '2.5rem' }}
+              placeholder="you@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>FieldOps Console</h1>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-            Sign in to access your RBAC workspace
-          </p>
         </div>
 
-        {error && (
-          <div className="alert alert-danger" style={{ marginBottom: '1.25rem' }}>
-            {error}
+        <div className="form-group">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+            <label className="form-label" style={{ margin: 0 }}>Password</label>
+            <Link to="/forgot-password" style={{ fontSize: '0.8rem', color: '#64748b', textDecoration: 'none' }}>
+              Forgot password?
+            </Link>
           </div>
-        )}
-
-        <form onSubmit={handleLogin}>
-          <div className="form-group">
-            <label className="form-label">Email Address</label>
-            <div style={{ position: 'relative' }}>
-              <Mail size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input
-                type="email"
-                className="form-input"
-                style={{ paddingLeft: '2.5rem' }}
-                placeholder="name@fieldops.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
+          <div style={{ position: 'relative' }}>
+            <Lock size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <input
+              type="password"
+              className="form-input"
+              style={{ paddingLeft: '2.5rem' }}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
           </div>
-
-          <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-              <label className="form-label" style={{ margin: 0 }}>Password</label>
-              <Link to="/forgot-password" style={{ fontSize: '0.8rem', color: '#818cf8', textDecoration: 'none' }}>
-                Forgot Password?
-              </Link>
-            </div>
-            <div style={{ position: 'relative' }}>
-              <Lock size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input
-                type="password"
-                className="form-input"
-                style={{ paddingLeft: '2.5rem' }}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} disabled={loading}>
-            <LogIn size={16} />
-            <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
-          </button>
-        </form>
-
-        <div style={{ margin: '1.25rem 0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>OR</span>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
         </div>
 
         <button
-          onClick={handleGoogleLogin}
-          className="btn btn-secondary"
-          style={{ width: '100%', marginBottom: '1.25rem' }}
+          type="submit"
+          className="btn btn-primary"
+          style={{ width: '100%', height: '42px', marginTop: '0.5rem', fontWeight: 600 }}
           disabled={loading}
         >
-          <Chrome size={16} color="#ea4335" />
-          <span>Sign In with Google</span>
+          <LogIn size={16} />
+          <span>{loading ? 'Authenticating...' : 'Sign in'}</span>
         </button>
+      </form>
 
-        {/* Quick Demo Persona Badges */}
-        <div style={{ background: 'var(--bg-canvas)', borderRadius: '8px', padding: '0.85rem', border: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <UserCheck size={13} color="#818cf8" /> Quick Demo Personas
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-            <button
-              onClick={() => handleQuickLogin('owner@fieldops.com')}
-              className="btn btn-secondary"
-              style={{ justifyContent: 'space-between', padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
-            >
-              <span style={{ fontWeight: 600, color: '#c084fc' }}>👑 Owner</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>owner@fieldops.com</span>
-            </button>
-
-            <button
-              onClick={() => handleQuickLogin('manager@fieldops.com')}
-              className="btn btn-secondary"
-              style={{ justifyContent: 'space-between', padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
-            >
-              <span style={{ fontWeight: 600, color: '#34d399' }}>📊 Manager</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>manager@fieldops.com</span>
-            </button>
-
-            <button
-              onClick={() => handleQuickLogin('employee@fieldops.com')}
-              className="btn btn-secondary"
-              style={{ justifyContent: 'space-between', padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
-            >
-              <span style={{ fontWeight: 600, color: '#60a5fa' }}>🚶 Field Employee</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>employee@fieldops.com</span>
-            </button>
-          </div>
+      {/* Quick Demo Login Section */}
+      <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0' }}>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: '0.85rem' }}>
+          Quick demo login
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          Don&apos;t have an account?{' '}
-          <Link to="/register" style={{ color: '#818cf8', fontWeight: 600, textDecoration: 'none' }}>
-            Register User
-          </Link>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.65rem' }}>
+          {/* Owner Persona */}
+          <button
+            type="button"
+            onClick={() => handleQuickLogin('owner@fieldops.com')}
+            disabled={loading}
+            style={{
+              background: '#faf5ff',
+              border: '1px solid #e9d5ff',
+              borderRadius: '8px',
+              padding: '0.75rem 0.5rem',
+              textAlign: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b21a8', marginBottom: '0.2rem' }}>
+              Owner
+            </div>
+            <div style={{ fontSize: '0.7rem', color: '#9333ea' }}>
+              Click to fill
+            </div>
+          </button>
+
+          {/* Manager Persona */}
+          <button
+            type="button"
+            onClick={() => handleQuickLogin('manager@fieldops.com')}
+            disabled={loading}
+            style={{
+              background: '#eef2ff',
+              border: '1px solid #c7d2fe',
+              borderRadius: '8px',
+              padding: '0.75rem 0.5rem',
+              textAlign: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4338ca', marginBottom: '0.2rem' }}>
+              Manager
+            </div>
+            <div style={{ fontSize: '0.7rem', color: '#4f46e5' }}>
+              Click to fill
+            </div>
+          </button>
+
+          {/* Field Agent Persona */}
+          <button
+            type="button"
+            onClick={() => handleQuickLogin('employee@fieldops.com')}
+            disabled={loading}
+            style={{
+              background: '#ecfdf5',
+              border: '1px solid #a7f3d0',
+              borderRadius: '8px',
+              padding: '0.75rem 0.5rem',
+              textAlign: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#047857', marginBottom: '0.2rem' }}>
+              Field Agent
+            </div>
+            <div style={{ fontSize: '0.7rem', color: '#059669' }}>
+              Click to fill
+            </div>
+          </button>
         </div>
       </div>
-    </div>
+    </AuthLayout>
   );
 };
-

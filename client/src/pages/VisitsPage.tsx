@@ -68,7 +68,7 @@ export const VisitsPage: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-canvas)' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-app)' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Navbar title="Field Visit Management" />
 
@@ -102,10 +102,10 @@ export const VisitsPage: React.FC = () => {
 
           {/* Self Visits Table (Permission Gate: READ_SELF_VISIT) */}
           <PermissionGate permission={Permission.READ_SELF_VISIT}>
-            <div className="glass-panel" style={{ padding: '1.75rem', marginBottom: '1.75rem' }}>
+            <div className="saas-card" style={{ padding: '1.75rem', marginBottom: '1.75rem' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 1rem 0', color: 'var(--text-primary)' }}>My Registered Field Visits</h3>
               {selfVisits.length === 0 ? (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '1rem 0', textAlign: 'center' }}>No personal field visits logged yet.</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '1.5rem 0', textAlign: 'center' }}>No personal field visits logged yet.</div>
               ) : (
                 <div className="table-container">
                   <table className="data-table">
@@ -139,13 +139,13 @@ export const VisitsPage: React.FC = () => {
 
           {/* All Team Visits Table (Permission Gate: READ_ALL_VISIT) */}
           <PermissionGate permission={Permission.READ_ALL_VISIT}>
-            <div className="glass-panel" style={{ padding: '1.75rem' }}>
+            <div className="saas-card" style={{ padding: '1.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                <UserCheck size={18} color="#c084fc" />
+                <UserCheck size={18} color="#4f46e5" />
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Team Visits (Manager / Owner View)</h3>
               </div>
               {allVisits.length === 0 ? (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '1rem 0', textAlign: 'center' }}>No team visit records found.</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '1.5rem 0', textAlign: 'center' }}>No team visit records found.</div>
               ) : (
                 <div className="table-container">
                   <table className="data-table">
@@ -166,7 +166,7 @@ export const VisitsPage: React.FC = () => {
                           <tr key={v._id}>
                             <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{userObj?.name || 'Unknown'}</td>
                             <td>{new Date(v.visitDate).toLocaleString()}</td>
-                            <td style={{ fontWeight: 600, color: '#818cf8' }}>{v.customerName}</td>
+                            <td style={{ fontWeight: 600, color: '#4f46e5' }}>{v.customerName}</td>
                             <td>{v.purpose}</td>
                             <td>
                               <span className="badge badge-purple">{v.outcome}</span>
@@ -278,4 +278,3 @@ export const VisitsPage: React.FC = () => {
     </div>
   );
 };
-

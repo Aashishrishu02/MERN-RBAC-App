@@ -74,14 +74,14 @@ export const RoleManagementPage: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-canvas)' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-app)' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Navbar title="Role & Permission Configurator" />
 
         <div className="main-content">
           <div style={{ marginBottom: '1.75rem' }}>
             <h2 style={{ fontSize: '1.35rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <ShieldAlert size={22} color="#818cf8" /> Dynamic Permission Matrix
+              <ShieldAlert size={22} color="#0f172a" /> Dynamic Permission Matrix
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.35rem', maxWidth: '750px', margin: 0 }}>
               As an Owner, you can dynamically adjust permission strings assigned to any role. 
@@ -101,8 +101,8 @@ export const RoleManagementPage: React.FC = () => {
             </div>
           )}
 
-          <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '1.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1rem', color: '#818cf8', fontSize: '0.8rem', fontWeight: 500 }}>
+          <div className="saas-card" style={{ padding: '1.5rem', marginBottom: '1.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1rem', color: '#4f46e5', fontSize: '0.8rem', fontWeight: 500 }}>
               <Info size={15} /> Tip: Toggle checkboxes for any role column below and click Save Matrix to apply changes.
             </div>
 
@@ -124,7 +124,7 @@ export const RoleManagementPage: React.FC = () => {
                 <tbody>
                   {availablePermissions.map((perm) => (
                     <tr key={perm}>
-                      <td style={{ fontWeight: 600, color: '#818cf8', fontSize: '0.825rem' }}>
+                      <td style={{ fontWeight: 600, color: '#4f46e5', fontSize: '0.825rem' }}>
                         {perm}
                       </td>
                       {roles.map((r) => {
@@ -141,7 +141,7 @@ export const RoleManagementPage: React.FC = () => {
                               style={{
                                 width: '18px',
                                 height: '18px',
-                                accentColor: '#6366f1',
+                                accentColor: '#0f172a',
                                 cursor: isOwnerManageRoles ? 'not-allowed' : 'pointer',
                                 opacity: isOwnerManageRoles ? 0.5 : 1,
                               }}
@@ -154,7 +154,7 @@ export const RoleManagementPage: React.FC = () => {
                   ))}
 
                   {/* Save Buttons Row */}
-                  <tr style={{ background: 'var(--bg-canvas)' }}>
+                  <tr style={{ background: 'var(--bg-surface-subtle)' }}>
                     <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Action</td>
                     {roles.map((r) => (
                       <td key={r._id} style={{ textAlign: 'center' }}>
@@ -179,4 +179,3 @@ export const RoleManagementPage: React.FC = () => {
     </div>
   );
 };
-
