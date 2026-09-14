@@ -1,0 +1,114 @@
+name: CI/CD Pipeline - FieldOps Access Test
+
+on:
+  push:
+    branches: [ main, master, dev ]
+  pull_request:
+    branches: [ main, master, dev ]
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & TypeScript Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Monorepo Dependencies
+        run: |
+          npm install
+          npm --prefix server install
+          npm --prefix client install
+
+      - name: TypeScript Check (Backend)
+        run: npm --prefix server run check-types
+
+      - name: TypeScript Check (Frontend)
+        run: npm --prefix client run check-types
+
+      - name: Linting (Backend)
+        run: npm --prefix server run lint
+
+      - name: Linting (Frontend)
+        run: npm --prefix client run lint
+
+  test:
+    name: Backend Unit & RBAC Tests
+    needs: lint-and-typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm --prefix server install
+
+      - name: Run Backend Tests
+        run: npm --prefix server test
+        env:
+          JWT_SECRET: ci_test_secret_key_12345
+          NODE_ENV: test
+
+  build:
+    name: Build Frontend & Backend
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm --prefix server install
+          npm --prefix client install
+
+      - name: Build Backend (TypeScript -> JS)
+        run: npm --prefix server run build
+
+      - name: Build Frontend (Vite Production Bundle)
+        run: npm --prefix client run build
+
+  docker-build:
+    name: Docker Build Step (Bonus)
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image (Backend & Monorepo)
+        run: |
+          docker build -t fieldops-access-test:latest .
+
+  deploy-placeholder:
+    name: Deploy Placeholder Workflow (Bonus)
+    needs: docker-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    steps:
+      - name: Echo Deploy Announcement
+        run: |
+          echo "🚀 CI/CD Pipeline successfully built and tested FieldOps Access Test!"
+          echo "📦 Production artifacts ready for deployment to staging/production server."
