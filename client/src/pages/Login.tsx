@@ -20,6 +20,7 @@ export const Login: React.FC = () => {
   const navigate = useNavigate();
 
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const isDev = import.meta.env.DEV;
 
   const handleGoogleCredentialResponse = useCallback(
     async (response: { credential?: string }) => {
@@ -31,15 +32,11 @@ export const Login: React.FC = () => {
         return;
       }
 
-      const segments = response.credential.split('.').length;
-      const isJwt = segments === 3;
-      console.log('[Google Auth] Credential received - isJWT:', isJwt, 'segments:', segments);
-
       setError('');
       setLoading(true);
 
       try {
-        console.log('[Google Auth] Sending POST /api/auth/google request...');
+        console.log('[Google Auth] Sending POST /api/auth/google with real ID token');
         const data = await authService.googleLogin(response.credential);
         console.log('[Google Auth] Google auth API success');
         login(data.token, data.user);
@@ -55,19 +52,19 @@ export const Login: React.FC = () => {
   );
 
   useEffect(() => {
-    console.log('[Google Auth] Checking VITE_GOOGLE_CLIENT_ID configured:', Boolean(googleClientId));
-    if (!googleClientId) return;
+    if (!googleClientId) {
+      console.warn('[Google Auth] VITE_GOOGLE_CLIENT_ID is not configured');
+      return;
+    }
 
     const scriptId = 'google-gsi-client';
     const initGoogle = () => {
       if (window.google?.accounts?.id) {
-        console.log('[Google Auth] GIS script loaded. Initializing google.accounts.id...');
+        console.log('[Google Auth] Initializing GIS google.accounts.id...');
         window.google.accounts.id.initialize({
           client_id: googleClientId,
           callback: handleGoogleCredentialResponse,
         });
-
-        console.log('[Google Auth] google.accounts.id initialized successfully');
 
         const btnDiv = document.getElementById('google-btn-container');
         if (btnDiv) {
@@ -78,7 +75,7 @@ export const Login: React.FC = () => {
             width: '100%',
             text: 'continue_with',
           });
-          console.log('[Google Auth] Rendered GIS Google button into container');
+          console.log('[Google Auth] GIS Google button rendered');
         }
       }
     };
@@ -129,31 +126,22 @@ export const Login: React.FC = () => {
     }
   };
 
-  const handleFallbackGoogleLogin = async () => {
-    setError('');
-
-    if (googleClientId && window.google?.accounts?.id) {
-      console.log('[Google Auth] Triggering google.accounts.id.prompt()');
-      window.google.accounts.id.prompt();
+  const handleDevMockGoogleLogin = async () => {
+    if (!isDev) {
+      setError('Google Sign-In is unavailable. VITE_GOOGLE_CLIENT_ID environment variable is not configured.');
       return;
     }
 
-    if (import.meta.env.DEV) {
-      console.log('[Google Auth] Running local DEV mock login fallback');
-      setLoading(true);
-      try {
-        const data = await authService.googleLogin('mock_google_id_token');
-        login(data.token, data.user);
-        navigate('/dashboard');
-      } catch (err: any) {
-        setError(err.response?.data?.message || 'Google Auth failed.');
-      } finally {
-        setLoading(false);
-      }
-      return;
+    setLoading(true);
+    try {
+      const data = await authService.googleLogin('mock_google_id_token');
+      login(data.token, data.user);
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Google Auth failed.');
+    } finally {
+      setLoading(false);
     }
-
-    setError('Google Client ID (VITE_GOOGLE_CLIENT_ID) is missing in environment variables during build.');
   };
 
   return (
@@ -176,13 +164,13 @@ export const Login: React.FC = () => {
         </div>
       )}
 
-      {/* Google Login CTA Container */}
+      {/* Google Login CTA */}
       {googleClientId ? (
         <div id="google-btn-container" style={{ width: '100%', minHeight: '40px', marginBottom: '1rem' }} />
-      ) : (
+      ) : isDev ? (
         <button
           type="button"
-          onClick={handleFallbackGoogleLogin}
+          onClick={handleDevMockGoogleLogin}
           disabled={loading}
           style={{
             width: '100%',
@@ -200,28 +188,26 @@ export const Login: React.FC = () => {
             cursor: 'pointer',
             transition: 'all 0.15s ease',
             boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+            marginBottom: '1rem',
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24">
-            <path
-              fill="#4285F4"
-              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-            />
-            <path
-              fill="#EA4335"
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-            />
-          </svg>
-          <span>Continue with Google</span>
+          <span>Continue with Google (Local Dev Mock)</span>
         </button>
+      ) : (
+        <div
+          style={{
+            padding: '0.75rem 1rem',
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
+            borderRadius: '6px',
+            color: '#b45309',
+            fontSize: '0.8rem',
+            marginBottom: '1rem',
+            textAlign: 'center',
+          }}
+        >
+          Google Sign-In requires VITE_GOOGLE_CLIENT_ID environment variable.
+        </div>
       )}
 
       {/* Divider */}
