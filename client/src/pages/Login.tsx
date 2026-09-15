@@ -23,19 +23,29 @@ export const Login: React.FC = () => {
 
   const handleGoogleCredentialResponse = useCallback(
     async (response: { credential?: string }) => {
+      console.log('[Google Auth] Google credential callback fired');
+
       if (!response.credential) {
+        console.error('[Google Auth] No credential in callback response');
         setError('Google Authentication failed: No credential received from Google.');
         return;
       }
+
+      const segments = response.credential.split('.').length;
+      const isJwt = segments === 3;
+      console.log('[Google Auth] Credential received - isJWT:', isJwt, 'segments:', segments);
 
       setError('');
       setLoading(true);
 
       try {
+        console.log('[Google Auth] Sending POST /api/auth/google request...');
         const data = await authService.googleLogin(response.credential);
+        console.log('[Google Auth] Google auth API success');
         login(data.token, data.user);
         navigate('/dashboard');
       } catch (err: any) {
+        console.error('[Google Auth] Google auth API failed:', err.response?.data?.message || err.message);
         setError(err.response?.data?.message || 'Google Auth failed.');
       } finally {
         setLoading(false);
@@ -45,15 +55,19 @@ export const Login: React.FC = () => {
   );
 
   useEffect(() => {
+    console.log('[Google Auth] Checking VITE_GOOGLE_CLIENT_ID configured:', Boolean(googleClientId));
     if (!googleClientId) return;
 
     const scriptId = 'google-gsi-client';
     const initGoogle = () => {
       if (window.google?.accounts?.id) {
+        console.log('[Google Auth] GIS script loaded. Initializing google.accounts.id...');
         window.google.accounts.id.initialize({
           client_id: googleClientId,
           callback: handleGoogleCredentialResponse,
         });
+
+        console.log('[Google Auth] google.accounts.id initialized successfully');
 
         const btnDiv = document.getElementById('google-btn-container');
         if (btnDiv) {
@@ -64,6 +78,7 @@ export const Login: React.FC = () => {
             width: '100%',
             text: 'continue_with',
           });
+          console.log('[Google Auth] Rendered GIS Google button into container');
         }
       }
     };
@@ -118,11 +133,13 @@ export const Login: React.FC = () => {
     setError('');
 
     if (googleClientId && window.google?.accounts?.id) {
+      console.log('[Google Auth] Triggering google.accounts.id.prompt()');
       window.google.accounts.id.prompt();
       return;
     }
 
     if (import.meta.env.DEV) {
+      console.log('[Google Auth] Running local DEV mock login fallback');
       setLoading(true);
       try {
         const data = await authService.googleLogin('mock_google_id_token');
@@ -136,7 +153,7 @@ export const Login: React.FC = () => {
       return;
     }
 
-    setError('Google Client ID (VITE_GOOGLE_CLIENT_ID) is not configured in production environment variables.');
+    setError('Google Client ID (VITE_GOOGLE_CLIENT_ID) is missing in environment variables during build.');
   };
 
   return (
