@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, LogIn } from 'lucide-react';
 import { authService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { AuthLayout } from '../components/AuthLayout';
+
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -12,6 +18,69 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const isDev = import.meta.env.DEV;
+
+  const handleGoogleCredentialResponse = useCallback(
+    async (response: { credential?: string }) => {
+      if (!response.credential) {
+        setError('Google Authentication failed: No credential received from Google.');
+        return;
+      }
+
+      setError('');
+      setLoading(true);
+
+      try {
+        const data = await authService.googleLogin(response.credential);
+        login(data.token, data.user);
+        navigate('/dashboard');
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Google Auth failed.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [login, navigate]
+  );
+
+  useEffect(() => {
+    if (!googleClientId) return;
+
+    const scriptId = 'google-gsi-client';
+    const initGoogle = () => {
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: handleGoogleCredentialResponse,
+        });
+
+        const btnDiv = document.getElementById('google-btn-container');
+        if (btnDiv) {
+          btnDiv.innerHTML = '';
+          window.google.accounts.id.renderButton(btnDiv, {
+            theme: 'outline',
+            size: 'large',
+            width: '100%',
+            text: 'continue_with',
+          });
+        }
+      }
+    };
+
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = initGoogle;
+      document.body.appendChild(script);
+    } else {
+      initGoogle();
+    }
+  }, [googleClientId, handleGoogleCredentialResponse]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,8 +117,19 @@ export const Login: React.FC = () => {
 
   const handleGoogleLogin = async () => {
     setError('');
-    setLoading(true);
 
+    if (googleClientId && window.google?.accounts?.id) {
+      window.google.accounts.id.prompt();
+      return;
+    }
+
+    if (!isDev) {
+      setError('Google Client ID (VITE_GOOGLE_CLIENT_ID) is not configured on the client environment.');
+      return;
+    }
+
+    // Local development mock fallback ONLY
+    setLoading(true);
     try {
       const data = await authService.googleLogin('mock_google_id_token');
       login(data.token, data.user);
@@ -81,49 +161,53 @@ export const Login: React.FC = () => {
         </div>
       )}
 
-      {/* Google Login CTA */}
-      <button
-        type="button"
-        onClick={handleGoogleLogin}
-        disabled={loading}
-        style={{
-          width: '100%',
-          height: '42px',
-          background: '#ffffff',
-          border: '1px solid #cbd5e1',
-          borderRadius: '6px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '0.6rem',
-          fontSize: '0.875rem',
-          fontWeight: 600,
-          color: '#0f172a',
-          cursor: 'pointer',
-          transition: 'all 0.15s ease',
-          boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-        }}
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24">
-          <path
-            fill="#4285F4"
-            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-          />
-          <path
-            fill="#34A853"
-            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-          />
-          <path
-            fill="#FBBC05"
-            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-          />
-          <path
-            fill="#EA4335"
-            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-          />
-        </svg>
-        <span>Continue with Google</span>
-      </button>
+      {/* Google Login CTA Container */}
+      {googleClientId ? (
+        <div id="google-btn-container" style={{ width: '100%', minHeight: '40px', marginBottom: '1rem' }} />
+      ) : (
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          style={{
+            width: '100%',
+            height: '42px',
+            background: '#ffffff',
+            border: '1px solid #cbd5e1',
+            borderRadius: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.6rem',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            color: '#0f172a',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24">
+            <path
+              fill="#4285F4"
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+            />
+            <path
+              fill="#EA4335"
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+            />
+          </svg>
+          <span>Continue with Google</span>
+        </button>
+      )}
 
       {/* Divider */}
       <div style={{ margin: '1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
