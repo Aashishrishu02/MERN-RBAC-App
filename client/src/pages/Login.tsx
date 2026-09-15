@@ -20,7 +20,6 @@ export const Login: React.FC = () => {
   const navigate = useNavigate();
 
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-  const isDev = import.meta.env.DEV;
 
   const handleGoogleCredentialResponse = useCallback(
     async (response: { credential?: string }) => {
@@ -115,7 +114,7 @@ export const Login: React.FC = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleFallbackGoogleLogin = async () => {
     setError('');
 
     if (googleClientId && window.google?.accounts?.id) {
@@ -123,22 +122,21 @@ export const Login: React.FC = () => {
       return;
     }
 
-    if (!isDev) {
-      setError('Google Client ID (VITE_GOOGLE_CLIENT_ID) is not configured on the client environment.');
+    if (import.meta.env.DEV) {
+      setLoading(true);
+      try {
+        const data = await authService.googleLogin('mock_google_id_token');
+        login(data.token, data.user);
+        navigate('/dashboard');
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Google Auth failed.');
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
-    // Local development mock fallback ONLY
-    setLoading(true);
-    try {
-      const data = await authService.googleLogin('mock_google_id_token');
-      login(data.token, data.user);
-      navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Google Auth failed.');
-    } finally {
-      setLoading(false);
-    }
+    setError('Google Client ID (VITE_GOOGLE_CLIENT_ID) is not configured in production environment variables.');
   };
 
   return (
@@ -167,7 +165,7 @@ export const Login: React.FC = () => {
       ) : (
         <button
           type="button"
-          onClick={handleGoogleLogin}
+          onClick={handleFallbackGoogleLogin}
           disabled={loading}
           style={{
             width: '100%',
