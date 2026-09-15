@@ -335,7 +335,7 @@ export const Login: React.FC = () => {
             }}
           >
             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#047857', marginBottom: '0.2rem' }}>
-              Field Agent
+              Field Employee
             </div>
             <div style={{ fontSize: '0.7rem', color: '#059669' }}>
               Click to fill

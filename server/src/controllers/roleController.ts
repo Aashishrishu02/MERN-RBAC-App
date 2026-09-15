@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { Role, Permission } from '../models/Role';
+import { Role, Permission, IRole } from '../models/Role';
+import { User } from '../models/User';
 
 export const getRoles = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -31,12 +32,26 @@ export const updateRolePermissions = async (req: Request, res: Response): Promis
       return;
     }
 
-    // Priority 4 Safety Guard: Owner role cannot revoke MANAGE_ROLES from itself
-    if (targetRole.name === 'Owner' && !permissions.includes(Permission.MANAGE_ROLES)) {
-      res.status(400).json({
-        message: 'Safety Guard: The Owner role must retain the MANAGE_ROLES permission to prevent system lockout.',
+    // Safety Guard: Check if removing MANAGE_ROLES from targetRole would leave zero users with MANAGE_ROLES capability
+    const targetCurrentlyHasManageRoles = targetRole.permissions.includes(Permission.MANAGE_ROLES);
+    const newHasManageRoles = permissions.includes(Permission.MANAGE_ROLES);
+
+    if (targetCurrentlyHasManageRoles && !newHasManageRoles) {
+      const allUsers = await User.find().populate<{ role: IRole }>('role');
+      const remainingManageRolesUsers = allUsers.filter((u) => {
+        const userRoleId = (u.role as IRole)?._id?.toString();
+        if (userRoleId === targetRole._id.toString()) {
+          return false;
+        }
+        return (u.role as IRole)?.permissions?.includes(Permission.MANAGE_ROLES);
       });
-      return;
+
+      if (remainingManageRolesUsers.length === 0) {
+        res.status(400).json({
+          message: 'Safety Guard: Cannot remove MANAGE_ROLES permission from this role because it would leave no active users capable of managing roles.',
+        });
+        return;
+      }
     }
 
     const validPermissions = Object.values(Permission);

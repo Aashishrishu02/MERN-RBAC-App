@@ -14,6 +14,7 @@ export interface IRole extends Document {
   name: string;
   description?: string;
   permissions: string[];
+  isDefault?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,6 +30,10 @@ const RoleSchema: Schema = new Schema(
     description: {
       type: String,
       default: '',
+    },
+    isDefault: {
+      type: Boolean,
+      default: false,
     },
     permissions: [
       {

@@ -26,6 +26,14 @@ export interface User {
   permissions: string[];
 }
 
+export interface UserListItem {
+  _id: string;
+  name: string;
+  email: string;
+  role: Role | { _id: string; name: string };
+  createdAt?: string;
+}
+
 export interface Attendance {
   _id: string;
   userId: {

@@ -32,9 +32,9 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     let targetRoleId = roleId;
     if (!targetRoleId) {
-      const defaultRole = await Role.findOne({ name: 'Field Employee' });
+      const defaultRole = await Role.findOne({ isDefault: true });
       if (!defaultRole) {
-        res.status(500).json({ message: 'Default Field Employee role not found. Please run seed script.' });
+        res.status(500).json({ message: 'Default role not found. Please run seed script.' });
         return;
       }
       targetRoleId = defaultRole._id;
@@ -162,7 +162,7 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
     let existingUser = await User.findOne({ email: verifiedEmail });
 
     if (!existingUser) {
-      const defaultRole = await Role.findOne({ name: 'Field Employee' });
+      const defaultRole = await Role.findOne({ isDefault: true });
       if (!defaultRole) {
         res.status(500).json({ message: 'Default role not found for Google login. Run seed script.' });
         return;

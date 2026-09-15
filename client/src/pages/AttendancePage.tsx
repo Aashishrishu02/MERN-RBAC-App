@@ -191,7 +191,7 @@ export const AttendancePage: React.FC = () => {
             <div className="saas-card" style={{ padding: '1.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                 <UserCheck size={18} color="#4f46e5" />
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Team Attendance (Manager / Owner View)</h3>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Team Attendance</h3>
               </div>
               {allAttendance.length === 0 ? (
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '1.5rem 0', textAlign: 'center' }}>No team attendance records found.</div>

@@ -21,6 +21,7 @@ export const seedDatabase = async (): Promise<void> => {
         name: 'Owner',
         description: 'Full system administrative access and permission configuration capability',
         permissions: Object.values(Permission),
+        isDefault: false,
       },
       {
         name: 'Manager',
@@ -31,6 +32,7 @@ export const seedDatabase = async (): Promise<void> => {
           Permission.READ_SELF_VISIT,
           Permission.READ_ALL_VISIT,
         ],
+        isDefault: false,
       },
       {
         name: 'Field Employee',
@@ -41,6 +43,7 @@ export const seedDatabase = async (): Promise<void> => {
           Permission.READ_SELF_VISIT,
           Permission.SAVE_VISIT,
         ],
+        isDefault: true,
       },
     ];
 
@@ -54,6 +57,7 @@ export const seedDatabase = async (): Promise<void> => {
       } else {
         role.description = def.description;
         role.permissions = def.permissions;
+        role.isDefault = def.isDefault;
         await role.save();
         console.log(`🔄 Updated Role: ${def.name}`);
       }
