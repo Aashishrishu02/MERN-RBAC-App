@@ -245,4 +245,121 @@ describe('User Role Assignment API Tests', () => {
       .set('Authorization', `Bearer ${empToken}`);
     expect(promotedRes.status).toBe(200);
   });
+
+  describe('Individual User Permission Override Tests', () => {
+    let customUserToken: string;
+    let customUserId: string;
+
+    beforeAll(async () => {
+      const hashedPassword = await bcrypt.hash('Password123!', 10);
+      const customUser = await User.create({
+        name: 'Custom Perm Employee',
+        email: 'custom_perm@test.com',
+        password: hashedPassword,
+        role: employeeRoleId,
+      });
+      customUserId = (customUser._id as any).toString();
+
+      const loginRes = await request(app).post('/api/auth/login').send({
+        email: 'custom_perm@test.com',
+        password: 'Password123!',
+      });
+      customUserToken = loginRes.body.token;
+    });
+
+    it('10. GET /api/users/:id/permissions - Authorized user can retrieve user permissions structure', async () => {
+      const res = await request(app)
+        .get(`/api/users/${customUserId}/permissions`)
+        .set('Authorization', `Bearer ${ownerToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.userId).toBe(customUserId);
+      expect(Array.isArray(res.body.rolePermissions)).toBe(true);
+      expect(res.body.customPermissions).toBeNull();
+      expect(Array.isArray(res.body.effectivePermissions)).toBe(true);
+    });
+
+    it('11. GET /api/users/:id/permissions - Unauthorized user receives 403 Forbidden', async () => {
+      const res = await request(app)
+        .get(`/api/users/${customUserId}/permissions`)
+        .set('Authorization', `Bearer ${employeeToken}`);
+
+      expect(res.status).toBe(403);
+      expect(res.body.message).toContain('MANAGE_ROLES');
+    });
+
+    it('12. PUT /api/users/:id/permissions - Directly granting READ_ALL_ATTENDANCE grants access immediately', async () => {
+      // Initially customUser (Field Employee) gets 403 for /api/attendance/all
+      const initialRes = await request(app)
+        .get('/api/attendance/all')
+        .set('Authorization', `Bearer ${customUserToken}`);
+      expect(initialRes.status).toBe(403);
+
+      // Owner grants READ_ALL_ATTENDANCE to customUser specifically
+      const grantRes = await request(app)
+        .put(`/api/users/${customUserId}/permissions`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          permissions: [
+            Permission.READ_SELF_ATTENDANCE,
+            Permission.CLOCK_IN_OUT,
+            Permission.READ_SELF_VISIT,
+            Permission.SAVE_VISIT,
+            Permission.READ_ALL_ATTENDANCE,
+          ],
+        });
+      expect(grantRes.status).toBe(200);
+      expect(grantRes.body.user.customPermissions).toContain(Permission.READ_ALL_ATTENDANCE);
+
+      // Now customUser can access /api/attendance/all with the SAME token
+      const grantedRes = await request(app)
+        .get('/api/attendance/all')
+        .set('Authorization', `Bearer ${customUserToken}`);
+      expect(grantedRes.status).toBe(200);
+    });
+
+    it('13. PUT /api/users/:id/permissions - Directly revoking CLOCK_IN_OUT revokes access immediately', async () => {
+      // Revoke CLOCK_IN_OUT from customUser
+      const revokeRes = await request(app)
+        .put(`/api/users/${customUserId}/permissions`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          permissions: [Permission.READ_SELF_ATTENDANCE],
+        });
+      expect(revokeRes.status).toBe(200);
+
+      // customUser attempts to clock in -> receives 403 Forbidden
+      const clockInRes = await request(app)
+        .post('/api/attendance/clock-in')
+        .set('Authorization', `Bearer ${customUserToken}`)
+        .send({});
+      expect(clockInRes.status).toBe(403);
+      expect(clockInRes.body.message).toContain('CLOCK_IN_OUT');
+    });
+
+    it('14. PUT /api/users/:id/permissions - Invalid permission values return 400 Bad Request', async () => {
+      const res = await request(app)
+        .put(`/api/users/${customUserId}/permissions`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          permissions: ['SUPER_ADMIN_INVALID_PERMISSION'],
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('Invalid permission');
+    });
+
+    it('15. PUT /api/users/:id/permissions - Safety Guard blocks revoking MANAGE_ROLES from last manager', async () => {
+      // Attempting to remove MANAGE_ROLES from ownerUser
+      const res = await request(app)
+        .put(`/api/users/${ownerUserId}/permissions`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          permissions: [Permission.READ_ALL_ATTENDANCE],
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('Safety Guard');
+    });
+  });
 });

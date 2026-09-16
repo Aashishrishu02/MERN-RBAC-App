@@ -31,7 +31,16 @@ export interface UserListItem {
   name: string;
   email: string;
   role: Role | { _id: string; name: string };
+  customPermissions?: string[] | null;
+  effectivePermissions?: string[];
   createdAt?: string;
+}
+
+export interface UserPermissionsResponse {
+  userId: string;
+  rolePermissions: string[];
+  customPermissions: string[] | null;
+  effectivePermissions: string[];
 }
 
 export interface Attendance {

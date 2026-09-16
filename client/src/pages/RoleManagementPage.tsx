@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ShieldAlert, Save, Info, Users, UserCheck } from 'lucide-react';
+import { ShieldAlert, Save, Info, Users, UserCheck, KeyRound, X, RotateCcw } from 'lucide-react';
 import { roleService, userService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Navbar } from '../components/Navbar';
@@ -18,6 +18,16 @@ export const RoleManagementPage: React.FC = () => {
   
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // User Direct Permissions Modal state
+  const [selectedUserForPerms, setSelectedUserForPerms] = useState<UserListItem | null>(null);
+  const [userRolePermissions, setUserRolePermissions] = useState<string[]>([]);
+  const [userCustomPermissions, setUserCustomPermissions] = useState<string[] | null>(null);
+  const [userModalPermissions, setUserModalPermissions] = useState<string[]>([]);
+  const [isResettingToRole, setIsResettingToRole] = useState(false);
+  const [savingUserPerms, setSavingUserPerms] = useState(false);
+  const [modalError, setModalError] = useState('');
+  const [modalSuccess, setModalSuccess] = useState('');
 
   const fetchRolesData = async () => {
     try {
@@ -141,6 +151,62 @@ export const RoleManagementPage: React.FC = () => {
     }
   };
 
+  const handleOpenPermissionsModal = async (targetUser: UserListItem) => {
+    setSelectedUserForPerms(targetUser);
+    setModalError('');
+    setModalSuccess('');
+    setIsResettingToRole(false);
+
+    try {
+      const data = await userService.getUserPermissions(targetUser._id);
+      setUserRolePermissions(data.rolePermissions);
+      setUserCustomPermissions(data.customPermissions);
+      setUserModalPermissions(data.effectivePermissions);
+    } catch (err: any) {
+      setModalError(err.response?.data?.message || 'Failed to fetch user permissions.');
+    }
+  };
+
+  const handleToggleUserModalPermission = (perm: string) => {
+    setIsResettingToRole(false);
+    setUserModalPermissions((prev) =>
+      prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm]
+    );
+  };
+
+  const handleResetToRoleDefaults = () => {
+    setUserModalPermissions([...userRolePermissions]);
+    setIsResettingToRole(true);
+  };
+
+  const handleSaveUserPermissions = async () => {
+    if (!selectedUserForPerms) return;
+
+    setSavingUserPerms(true);
+    setModalError('');
+    setModalSuccess('');
+
+    try {
+      const permissionsToSave = isResettingToRole ? null : userModalPermissions;
+      await userService.updateUserPermissions(selectedUserForPerms._id, permissionsToSave);
+      setModalSuccess(`Permissions saved successfully for ${selectedUserForPerms.name}!`);
+
+      if (currentUser?.id === selectedUserForPerms._id) {
+        await refreshUser();
+      }
+
+      await fetchUsersData();
+
+      setTimeout(() => {
+        setSelectedUserForPerms(null);
+      }, 700);
+    } catch (err: any) {
+      setModalError(err.response?.data?.message || 'Failed to update user permissions.');
+    } finally {
+      setSavingUserPerms(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-app)' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -152,7 +218,7 @@ export const RoleManagementPage: React.FC = () => {
               <ShieldAlert size={22} color="#0f172a" /> Role & Access Control Configurator
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.35rem', maxWidth: '750px', margin: 0 }}>
-              Manage registered user role assignments and dynamically configure granular permission matrix per role across the system.
+              Manage registered user role assignments and dynamically configure granular permission matrix per role or individual user across the system.
             </p>
           </div>
 
@@ -173,7 +239,7 @@ export const RoleManagementPage: React.FC = () => {
             <div style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Users size={18} color="#0f172a" />
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-                User Role Management
+                User Role & Individual Permission Management
               </h3>
             </div>
 
@@ -185,7 +251,7 @@ export const RoleManagementPage: React.FC = () => {
                     <th>Email</th>
                     <th>Current Role</th>
                     <th>Assigned Role</th>
-                    <th style={{ textAlign: 'center' }}>Action</th>
+                    <th style={{ textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -202,6 +268,7 @@ export const RoleManagementPage: React.FC = () => {
                       const currentRoleName = currentRoleObj ? currentRoleObj.name : 'Unassigned';
                       const selectedRoleId = selectedUserRoles[u._id] || currentRoleId;
                       const isRoleChanged = selectedRoleId !== currentRoleId;
+                      const hasCustomPerms = Array.isArray(u.customPermissions);
 
                       return (
                         <tr key={u._id}>
@@ -215,24 +282,39 @@ export const RoleManagementPage: React.FC = () => {
                           </td>
                           <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{u.email}</td>
                           <td>
-                            {(() => {
-                              const rolePerms = currentRoleObj && 'permissions' in currentRoleObj ? (currentRoleObj.permissions as string[]) : [];
-                              const hasAdminPerm = rolePerms.includes(Permission.MANAGE_ROLES);
-                              const hasTeamPerm = rolePerms.includes(Permission.READ_ALL_ATTENDANCE);
-                              return (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                              {(() => {
+                                const rolePerms = currentRoleObj && 'permissions' in currentRoleObj ? (currentRoleObj.permissions as string[]) : [];
+                                const hasAdminPerm = rolePerms.includes(Permission.MANAGE_ROLES);
+                                const hasTeamPerm = rolePerms.includes(Permission.READ_ALL_ATTENDANCE);
+                                return (
+                                  <span style={{
+                                    padding: '0.25rem 0.6rem',
+                                    borderRadius: '4px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    background: hasAdminPerm ? '#faf5ff' : hasTeamPerm ? '#eef2ff' : '#ecfdf5',
+                                    color: hasAdminPerm ? '#6b21a8' : hasTeamPerm ? '#4338ca' : '#047857',
+                                    border: `1px solid ${hasAdminPerm ? '#e9d5ff' : hasTeamPerm ? '#c7d2fe' : '#a7f3d0'}`,
+                                  }}>
+                                    {currentRoleName}
+                                  </span>
+                                );
+                              })()}
+                              {hasCustomPerms && (
                                 <span style={{
-                                  padding: '0.25rem 0.6rem',
+                                  padding: '0.15rem 0.4rem',
                                   borderRadius: '4px',
-                                  fontSize: '0.75rem',
+                                  fontSize: '0.7rem',
                                   fontWeight: 600,
-                                  background: hasAdminPerm ? '#faf5ff' : hasTeamPerm ? '#eef2ff' : '#ecfdf5',
-                                  color: hasAdminPerm ? '#6b21a8' : hasTeamPerm ? '#4338ca' : '#047857',
-                                  border: `1px solid ${hasAdminPerm ? '#e9d5ff' : hasTeamPerm ? '#c7d2fe' : '#a7f3d0'}`,
-                                }}>
-                                  {currentRoleName}
+                                  background: '#fef3c7',
+                                  color: '#b45309',
+                                  border: '1px solid #fde68a',
+                                }} title="Has individual user-specific permission overrides">
+                                  Custom Overrides
                                 </span>
-                              );
-                            })()}
+                              )}
+                            </div>
                           </td>
                           <td>
                             <select
@@ -249,15 +331,32 @@ export const RoleManagementPage: React.FC = () => {
                             </select>
                           </td>
                           <td style={{ textAlign: 'center' }}>
-                            <button
-                              onClick={() => handleSaveUserRole(u)}
-                              className="btn btn-primary"
-                              style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem' }}
-                              disabled={updatingUserId === u._id || !isRoleChanged}
-                            >
-                              <UserCheck size={13} />
-                              <span>{updatingUserId === u._id ? 'Updating...' : 'Save Role'}</span>
-                            </button>
+                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                              <button
+                                onClick={() => handleOpenPermissionsModal(u)}
+                                className="btn"
+                                style={{
+                                  padding: '0.4rem 0.75rem',
+                                  fontSize: '0.75rem',
+                                  background: '#f1f5f9',
+                                  color: '#334155',
+                                  border: '1px solid #cbd5e1',
+                                }}
+                              >
+                                <KeyRound size={13} />
+                                <span>Manage Permissions</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleSaveUserRole(u)}
+                                className="btn btn-primary"
+                                style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem' }}
+                                disabled={updatingUserId === u._id || !isRoleChanged}
+                              >
+                                <UserCheck size={13} />
+                                <span>{updatingUserId === u._id ? 'Updating...' : 'Save Role'}</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -354,8 +453,110 @@ export const RoleManagementPage: React.FC = () => {
               </table>
             </div>
           </div>
+
+          {/* Direct User Permissions Modal */}
+          {selectedUserForPerms && (
+            <div className="modal-overlay" onClick={() => setSelectedUserForPerms(null)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <KeyRound size={20} color="#4f46e5" /> Manage Direct User Permissions
+                    </h3>
+                    <div style={{ fontSize: '0.85rem', marginTop: '0.35rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                      User: <span style={{ color: '#4f46e5' }}>{selectedUserForPerms.email}</span> ({selectedUserForPerms.name})
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedUserForPerms(null)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '0.2rem' }}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                {modalError && (
+                  <div className="alert alert-danger" style={{ marginBottom: '1rem', fontSize: '0.825rem' }}>
+                    {modalError}
+                  </div>
+                )}
+
+                {modalSuccess && (
+                  <div className="alert alert-success" style={{ marginBottom: '1rem', fontSize: '0.825rem' }}>
+                    {modalSuccess}
+                  </div>
+                )}
+
+                <div style={{ marginBottom: '1rem', padding: '0.6rem 0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.8rem' }}>
+                  <div style={{ fontWeight: 600, color: '#334155' }}>
+                    Assigned Role: {typeof selectedUserForPerms.role === 'object' && selectedUserForPerms.role !== null ? selectedUserForPerms.role.name : 'Unassigned'}
+                  </div>
+                  <div style={{ color: '#64748b', marginTop: '0.2rem' }}>
+                    {isResettingToRole || userCustomPermissions === null
+                      ? 'Using standard role default permissions.'
+                      : 'Custom direct permission overrides are active.'}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '280px', overflowY: 'auto', marginBottom: '1.25rem', paddingRight: '0.25rem' }}>
+                  {availablePermissions.map((perm) => {
+                    const isChecked = userModalPermissions.includes(perm);
+                    return (
+                      <label
+                        key={perm}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.5rem 0.75rem',
+                          border: `1px solid ${isChecked ? '#cbd5e1' : '#f1f5f9'}`,
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          background: isChecked ? '#ffffff' : '#f8fafc',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <span style={{ fontSize: '0.825rem', fontWeight: 600, color: isChecked ? '#0f172a' : '#64748b', fontFamily: 'monospace' }}>
+                          [{isChecked ? '✓' : ' '}] {perm}
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleToggleUserModalPermission(perm)}
+                          style={{ width: '16px', height: '16px', accentColor: '#0f172a', cursor: 'pointer' }}
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                  <button
+                    onClick={handleResetToRoleDefaults}
+                    className="btn"
+                    style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.78rem', padding: '0.45rem 0.75rem', border: '1px solid #cbd5e1' }}
+                    disabled={savingUserPerms}
+                    title="Reset to standard role permissions"
+                  >
+                    <RotateCcw size={13} />
+                    <span>Reset to Role Defaults</span>
+                  </button>
+                  <button
+                    onClick={handleSaveUserPermissions}
+                    className="btn btn-primary"
+                    style={{ fontSize: '0.78rem', padding: '0.45rem 0.9rem' }}
+                    disabled={savingUserPerms}
+                  >
+                    <Save size={13} />
+                    <span>{savingUserPerms ? 'Saving...' : 'Save Permissions'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
+

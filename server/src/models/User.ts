@@ -7,6 +7,7 @@ export interface IUser extends Document {
   password?: string;
   googleId?: string;
   role: mongoose.Types.ObjectId | IRole;
+  customPermissions?: string[];
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
   createdAt: Date;
@@ -41,6 +42,10 @@ const UserSchema: Schema = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'Role',
       required: true,
+    },
+    customPermissions: {
+      type: [String],
+      default: undefined,
     },
     resetPasswordToken: {
       type: String,

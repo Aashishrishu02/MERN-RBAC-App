@@ -32,6 +32,14 @@ export const getJwtSecret = (): string => {
   return secret;
 };
 
+export const getUserEffectivePermissions = (user: { role: IRole; customPermissions?: string[] }): string[] => {
+  if (Array.isArray(user.customPermissions)) {
+    return user.customPermissions;
+  }
+  const roleDoc = user.role as IRole;
+  return roleDoc?.permissions || [];
+};
+
 export const authenticateToken = async (
   req: AuthRequest,
   res: Response,
@@ -57,6 +65,7 @@ export const authenticateToken = async (
     }
 
     const roleDoc = user.role as IRole;
+    const effectivePermissions = getUserEffectivePermissions(user);
 
     req.user = {
       id: (user._id as any).toString(),
@@ -66,7 +75,7 @@ export const authenticateToken = async (
         id: (roleDoc._id as any).toString(),
         name: roleDoc.name,
       },
-      permissions: roleDoc.permissions || [],
+      permissions: effectivePermissions,
     };
 
     next();

@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import axios from 'axios';
-import { AuthResponse, Role, UserListItem, Attendance, Visit } from '../types';
+import { AuthResponse, Role, UserListItem, UserPermissionsResponse, Attendance, Visit } from '../types';
 
 export const formatApiUrl = (rawUrl?: string): string => {
   if (!rawUrl || !rawUrl.trim()) {
@@ -93,6 +93,17 @@ export const userService = {
   },
   updateUserRole: async (userId: string, roleId: string): Promise<{ user: UserListItem; message: string }> => {
     const res = await api.put(`/users/${userId}/role`, { roleId });
+    return res.data;
+  },
+  getUserPermissions: async (userId: string): Promise<UserPermissionsResponse> => {
+    const res = await api.get(`/users/${userId}/permissions`);
+    return res.data;
+  },
+  updateUserPermissions: async (
+    userId: string,
+    permissions: string[] | null
+  ): Promise<{ user: UserListItem; message: string }> => {
+    const res = await api.put(`/users/${userId}/permissions`, { permissions });
     return res.data;
   },
 };
