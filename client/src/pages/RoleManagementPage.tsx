@@ -13,10 +13,10 @@ export const RoleManagementPage: React.FC = () => {
   const [availablePermissions, setAvailablePermissions] = useState<string[]>([]);
   const [rolePermissionsState, setRolePermissionsState] = useState<Record<string, string[]>>({});
   const [selectedUserRoles, setSelectedUserRoles] = useState<Record<string, string>>({});
-  
+
   const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
-  
+
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -312,7 +312,7 @@ export const RoleManagementPage: React.FC = () => {
                     type="email"
                     className="form-input"
                     style={{ paddingLeft: '2.4rem', fontSize: '0.85rem' }}
-                    placeholder="erprincejhaa@gmail.com"
+                    placeholder="xyz@gmail.com"
                     value={assignEmail}
                     onChange={(e) => setAssignEmail(e.target.value)}
                     required
