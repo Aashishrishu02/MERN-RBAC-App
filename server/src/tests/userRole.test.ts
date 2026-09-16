@@ -22,7 +22,12 @@ beforeAll(async () => {
 
   const ownerRole = await Role.create({
     name: 'Owner',
-    permissions: Object.values(Permission),
+    permissions: [
+      Permission.READ_ALL_ATTENDANCE,
+      Permission.READ_ALL_VISIT,
+      Permission.MANAGE_ROLES,
+    ],
+    isDefault: false,
   });
 
   const managerRole = await Role.create({
@@ -30,9 +35,12 @@ beforeAll(async () => {
     permissions: [
       Permission.READ_SELF_ATTENDANCE,
       Permission.READ_ALL_ATTENDANCE,
+      Permission.CLOCK_IN_OUT,
       Permission.READ_SELF_VISIT,
       Permission.READ_ALL_VISIT,
+      Permission.SAVE_VISIT,
     ],
+    isDefault: false,
   });
   managerRoleId = (managerRole._id as any).toString();
 
@@ -44,6 +52,7 @@ beforeAll(async () => {
       Permission.READ_SELF_VISIT,
       Permission.SAVE_VISIT,
     ],
+    isDefault: true,
   });
   employeeRoleId = (employeeRole._id as any).toString();
 

@@ -20,7 +20,11 @@ export const seedDatabase = async (): Promise<void> => {
       {
         name: 'Owner',
         description: 'Full system administrative access and permission configuration capability',
-        permissions: Object.values(Permission),
+        permissions: [
+          Permission.READ_ALL_ATTENDANCE,
+          Permission.READ_ALL_VISIT,
+          Permission.MANAGE_ROLES,
+        ],
         isDefault: false,
       },
       {
@@ -29,8 +33,10 @@ export const seedDatabase = async (): Promise<void> => {
         permissions: [
           Permission.READ_SELF_ATTENDANCE,
           Permission.READ_ALL_ATTENDANCE,
+          Permission.CLOCK_IN_OUT,
           Permission.READ_SELF_VISIT,
           Permission.READ_ALL_VISIT,
+          Permission.SAVE_VISIT,
         ],
         isDefault: false,
       },
