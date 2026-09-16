@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import axios from 'axios';
-import { AuthResponse, Role, UserListItem, UserPermissionsResponse, Attendance, Visit } from '../types';
+import { AuthResponse, Role, UserListItem, UserPermissionsResponse, PendingRoleAssignmentItem, Attendance, Visit } from '../types';
 
 export const formatApiUrl = (rawUrl?: string): string => {
   if (!rawUrl || !rawUrl.trim()) {
@@ -104,6 +104,26 @@ export const userService = {
     permissions: string[] | null
   ): Promise<{ user: UserListItem; message: string }> => {
     const res = await api.put(`/users/${userId}/permissions`, { permissions });
+    return res.data;
+  },
+  assignRoleByEmail: async (
+    email: string,
+    roleId: string
+  ): Promise<{
+    status: 'UPDATED' | 'PENDING';
+    message: string;
+    user?: UserListItem;
+    assignment?: PendingRoleAssignmentItem;
+  }> => {
+    const res = await api.post('/users/role-assignment', { email, roleId });
+    return res.data;
+  },
+  getPendingRoleAssignments: async (): Promise<{ assignments: PendingRoleAssignmentItem[] }> => {
+    const res = await api.get('/users/role-assignment');
+    return res.data;
+  },
+  deletePendingRoleAssignment: async (id: string): Promise<{ message: string }> => {
+    const res = await api.delete(`/users/role-assignment/${id}`);
     return res.data;
   },
 };

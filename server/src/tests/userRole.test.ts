@@ -362,4 +362,173 @@ describe('User Role Assignment API Tests', () => {
       expect(res.body.message).toContain('Safety Guard');
     });
   });
+
+  describe('Pre-assign Role by Email (Pending Role Assignment) Tests', () => {
+    it('16. POST /api/users/role-assignment - Owner can pre-assign role for nonexistent email', async () => {
+      const res = await request(app)
+        .post('/api/users/role-assignment')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          email: '  ErPrinceJhaa@gmail.com  ',
+          roleId: managerRoleId,
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe('PENDING');
+      expect(res.body.message).toContain('Email verified');
+      expect(res.body.assignment.email).toBe('erprincejhaa@gmail.com');
+    });
+
+    it('17. POST /api/users/role-assignment - Unauthorized user gets 403 Forbidden', async () => {
+      const res = await request(app)
+        .post('/api/users/role-assignment')
+        .set('Authorization', `Bearer ${employeeToken}`)
+        .send({
+          email: 'unauthorized_test@gmail.com',
+          roleId: managerRoleId,
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.message).toContain('MANAGE_ROLES');
+    });
+
+    it('18. POST /api/users/role-assignment - Existing registered user gets role updated immediately', async () => {
+      const res = await request(app)
+        .post('/api/users/role-assignment')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          email: 'employee@test.com',
+          roleId: managerRoleId,
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe('UPDATED');
+      expect(res.body.message).toContain('User found. Role updated');
+      expect(res.body.user.role.name).toBe('Manager');
+    });
+
+    it('19. POST /api/users/role-assignment - Invalid email format is rejected with 400 Bad Request', async () => {
+      const res = await request(app)
+        .post('/api/users/role-assignment')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          email: 'not-an-email',
+          roleId: managerRoleId,
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('Invalid email format');
+    });
+
+    it('20. POST /api/users/role-assignment - Non-existent role ID returns 400 Bad Request', async () => {
+      const fakeRoleId = new mongoose.Types.ObjectId().toString();
+      const res = await request(app)
+        .post('/api/users/role-assignment')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          email: 'valid_email@test.com',
+          roleId: fakeRoleId,
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('Target role not found');
+    });
+
+    it('21. Standard Registration - Consumes pending role assignment and grants role immediately', async () => {
+      // 1. Create pending role assignment for future registrant
+      await request(app)
+        .post('/api/users/role-assignment')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          email: 'future_manager@test.com',
+          roleId: managerRoleId,
+        });
+
+      // 2. User registers without specifying roleId
+      const regRes = await request(app).post('/api/auth/register').send({
+        name: 'Future Manager User',
+        email: 'Future_Manager@test.com',
+        password: 'Password123!',
+      });
+
+      expect(regRes.status).toBe(201);
+      expect(regRes.body.user.role.name).toBe('Manager');
+
+      // 3. User immediately has Manager permissions (e.g. READ_ALL_VISIT)
+      const visitRes = await request(app)
+        .get('/api/visits/all')
+        .set('Authorization', `Bearer ${regRes.body.token}`);
+      expect(visitRes.status).toBe(200);
+
+      // 4. Pending assignment is deleted/consumed
+      const pendingRes = await request(app)
+        .get('/api/users/role-assignment?email=future_manager@test.com')
+        .set('Authorization', `Bearer ${ownerToken}`);
+      expect(pendingRes.body.assignments.length).toBe(0);
+    });
+
+    it('22. Google Login Flow - Consumes pending role assignment for new Google user', async () => {
+      // 1. Pre-assign Manager role to mock Google email
+      await request(app)
+        .post('/api/users/role-assignment')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          email: 'employee@fieldops.com',
+          roleId: managerRoleId,
+        });
+
+      // 2. User logs in with Google mock token
+      const googleRes = await request(app).post('/api/auth/google').send({
+        idToken: 'mock_google_id_token',
+      });
+
+      expect(googleRes.status).toBe(200);
+      expect(googleRes.body.user.role.name).toBe('Manager');
+
+      // 3. Pending assignment is consumed
+      const pendingRes = await request(app)
+        .get('/api/users/role-assignment?email=employee@fieldops.com')
+        .set('Authorization', `Bearer ${ownerToken}`);
+      expect(pendingRes.body.assignments.length).toBe(0);
+    });
+
+    it('23. DELETE /api/users/role-assignment/:id - Unauthorized user gets 403 Forbidden', async () => {
+      // Create pending assignment
+      const createRes = await request(app)
+        .post('/api/users/role-assignment')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          email: 'to_delete@test.com',
+          roleId: employeeRoleId,
+        });
+
+      const assignmentId = createRes.body.assignment._id;
+
+      const deleteRes = await request(app)
+        .delete(`/api/users/role-assignment/${assignmentId}`)
+        .set('Authorization', `Bearer ${employeeToken}`);
+
+      expect(deleteRes.status).toBe(403);
+      expect(deleteRes.body.message).toContain('MANAGE_ROLES');
+    });
+
+    it('24. DELETE /api/users/role-assignment/:id - Owner can cancel pending role assignment', async () => {
+      const createRes = await request(app)
+        .post('/api/users/role-assignment')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          email: 'to_cancel@test.com',
+          roleId: employeeRoleId,
+        });
+
+      const assignmentId = createRes.body.assignment._id;
+
+      const deleteRes = await request(app)
+        .delete(`/api/users/role-assignment/${assignmentId}`)
+        .set('Authorization', `Bearer ${ownerToken}`);
+
+      expect(deleteRes.status).toBe(200);
+      expect(deleteRes.body.message).toContain('removed successfully');
+    });
+  });
 });
