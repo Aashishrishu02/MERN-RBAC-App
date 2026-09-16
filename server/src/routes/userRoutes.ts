@@ -3,6 +3,7 @@ import {
   getUsers,
   updateUserRole,
   resetUserRole,
+  deleteUser,
   getUserPermissions,
   updateUserPermissions,
   createOrAssignRoleByEmail,
@@ -18,6 +19,7 @@ const router = Router();
 router.get('/', authenticateToken, checkPermission(Permission.MANAGE_ROLES), getUsers);
 router.put('/:id/role', authenticateToken, checkPermission(Permission.MANAGE_ROLES), updateUserRole);
 router.post('/:id/reset-role', authenticateToken, checkPermission(Permission.MANAGE_ROLES), resetUserRole);
+router.delete('/:id', authenticateToken, checkPermission(Permission.MANAGE_ROLES), deleteUser);
 router.get('/:id/permissions', authenticateToken, checkPermission(Permission.MANAGE_ROLES), getUserPermissions);
 router.put('/:id/permissions', authenticateToken, checkPermission(Permission.MANAGE_ROLES), updateUserPermissions);
 

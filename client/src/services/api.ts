@@ -105,6 +105,10 @@ export const userService = {
     const res = await api.post(`/users/${userId}/reset-role`);
     return res.data;
   },
+  deleteUser: async (userId: string): Promise<{ message: string }> => {
+    const res = await api.delete(`/users/${userId}`);
+    return res.data;
+  },
   getUserPermissions: async (userId: string): Promise<UserPermissionsResponse> => {
     const res = await api.get(`/users/${userId}/permissions`);
     return res.data;

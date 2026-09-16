@@ -35,9 +35,10 @@ export const verifySmtpConfig = async (): Promise<{ success: boolean; error?: st
   const secureEnv = process.env.SMTP_SECURE;
   const secure = secureEnv === 'true' || (secureEnv !== 'false' && port === 465);
   const user = process.env.SMTP_USER;
+  const fromAddress = process.env.SMTP_FROM || process.env.EMAIL_FROM || user || 'noreply@fieldops.com';
 
   if (!host || !user || !process.env.SMTP_PASS) {
-    const msg = `SMTP Configuration Incomplete: Host=${host || 'undefined'}, User=${user || 'undefined'}, Port=${port}`;
+    const msg = `SMTP Configuration Incomplete: Host=${host || 'undefined'}, Port=${port}, Secure=${secure}, User=${user || 'undefined'}, From=${fromAddress}`;
     if (process.env.NODE_ENV === 'production') {
       console.error(`[SMTP Startup Diagnostic] ${msg}`);
       return { success: false, error: msg };
@@ -53,10 +54,12 @@ export const verifySmtpConfig = async (): Promise<{ success: boolean; error?: st
     }
 
     await transporter.verify();
-    console.log(`[SMTP Startup Diagnostic] SMTP Connection verified successfully. Host: ${host}, Port: ${port}, Secure: ${secure}, User: ${user}`);
+    console.log(`[SMTP Startup Diagnostic] SMTP Connection verified successfully. Host: ${host}, Port: ${port}, Secure: ${secure}, User: ${user}, From: ${fromAddress}`);
     return { success: true };
   } catch (err: any) {
-    console.error(`[SMTP Startup Diagnostic Error] Failed to verify SMTP connection to ${host}:${port} - ${err.message}`);
+    const errCode = err.code ? ` (Code: ${err.code})` : '';
+    const errResp = err.response ? ` | Response: ${err.response}` : '';
+    console.error(`[SMTP Startup Diagnostic Error] Failed to verify SMTP connection to ${host}:${port}${errCode} - ${err.message}${errResp}`);
     return { success: false, error: err.message };
   }
 };
@@ -69,7 +72,12 @@ export const sendEmail = async (options: {
 }): Promise<SendEmailResult> => {
   try {
     const transporter = getTransporter();
-    const fromAddress = process.env.SMTP_FROM || process.env.EMAIL_FROM || 'noreply@fieldops.com';
+    const host = process.env.SMTP_HOST || 'unconfigured';
+    const port = parseInt(process.env.SMTP_PORT || '587', 10);
+    const secureEnv = process.env.SMTP_SECURE;
+    const secure = secureEnv === 'true' || (secureEnv !== 'false' && port === 465);
+    const user = process.env.SMTP_USER;
+    const fromAddress = process.env.SMTP_FROM || process.env.EMAIL_FROM || user || 'noreply@fieldops.com';
 
     if (!transporter) {
       if (process.env.NODE_ENV === 'production') {
@@ -86,6 +94,8 @@ export const sendEmail = async (options: {
       }
     }
 
+    console.log(`[SMTP Attempt] Host: ${host}, Port: ${port}, Secure: ${secure}, User: ${user ? user : 'unconfigured'}, From: ${fromAddress}, To: ${options.to}`);
+
     const info = await transporter.sendMail({
       from: `"FieldOps System" <${fromAddress}>`,
       to: options.to,
@@ -97,7 +107,12 @@ export const sendEmail = async (options: {
     console.log(`[SMTP Success] Email accepted for delivery to ${options.to}. MessageId: ${info.messageId}`);
     return { success: true, messageId: info.messageId };
   } catch (error: any) {
-    console.error(`[SMTP Error] Delivery failed to ${options.to}:`, error.message || error);
+    const code = error.code ? `Code: ${error.code}` : '';
+    const command = error.command ? `Command: ${error.command}` : '';
+    const response = error.response ? `Response: ${error.response}` : '';
+    const diagDetails = [code, command, response, error.message].filter(Boolean).join(' | ');
+
+    console.error(`[SMTP Delivery Failure] Target: ${options.to} | Host: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT} | ${diagDetails}`);
     return {
       success: false,
       error: error.message || 'Failed to transmit email notification via SMTP.',

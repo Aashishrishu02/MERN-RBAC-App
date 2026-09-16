@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ShieldAlert, Save, Info, Users, UserCheck, KeyRound, X, RotateCcw, UserPlus, Trash2, Mail, UserMinus } from 'lucide-react';
+import { ShieldAlert, Save, Info, Users, UserCheck, KeyRound, X, RotateCcw, UserPlus, Trash2, Mail } from 'lucide-react';
 import { roleService, userService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Navbar } from '../components/Navbar';
@@ -27,9 +27,9 @@ export const RoleManagementPage: React.FC = () => {
   const [assignError, setAssignError] = useState('');
   const [assignSuccess, setAssignSuccess] = useState('');
 
-  // Remove Role Confirmation modal state
-  const [confirmRemoveUser, setConfirmRemoveUser] = useState<UserListItem | null>(null);
-  const [removingRole, setRemovingRole] = useState(false);
+  // Delete User Confirmation modal state
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState<UserListItem | null>(null);
+  const [deletingUser, setDeletingUser] = useState(false);
 
   // User Direct Permissions Modal state
   const [selectedUserForPerms, setSelectedUserForPerms] = useState<UserListItem | null>(null);
@@ -174,29 +174,28 @@ export const RoleManagementPage: React.FC = () => {
     }
   };
 
+  const handleConfirmDeleteUser = async () => {
+    if (!confirmDeleteUser) return;
 
-  const handleConfirmRemoveRole = async () => {
-    if (!confirmRemoveUser) return;
-
-    setRemovingRole(true);
+    setDeletingUser(true);
     setError('');
     setSuccess('');
 
     try {
-      const res = await userService.resetUserRole(confirmRemoveUser._id);
+      const res = await userService.deleteUser(confirmDeleteUser._id);
       setSuccess(res.message);
 
-      if (currentUser?.id === confirmRemoveUser._id) {
+      if (currentUser?.id === confirmDeleteUser._id) {
         await refreshUser();
       }
 
       await fetchUsersData();
-      setConfirmRemoveUser(null);
+      setConfirmDeleteUser(null);
     } catch (err: any) {
-      setError(err.response?.data?.message || `Failed to remove role for ${confirmRemoveUser.name}.`);
-      setConfirmRemoveUser(null);
+      setError(err.response?.data?.message || `Failed to delete user ${confirmDeleteUser.name}.`);
+      setConfirmDeleteUser(null);
     } finally {
-      setRemovingRole(false);
+      setDeletingUser(false);
     }
   };
 
@@ -533,21 +532,6 @@ export const RoleManagementPage: React.FC = () => {
                           <td style={{ textAlign: 'center' }}>
                             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                               <button
-                                onClick={() => handleOpenPermissionsModal(u)}
-                                className="btn"
-                                style={{
-                                  padding: '0.4rem 0.75rem',
-                                  fontSize: '0.75rem',
-                                  background: '#f1f5f9',
-                                  color: '#334155',
-                                  border: '1px solid #cbd5e1',
-                                }}
-                              >
-                                <KeyRound size={13} />
-                                <span>Manage Permissions</span>
-                              </button>
-
-                              <button
                                 onClick={() => handleSaveUserRole(u)}
                                 className="btn btn-primary"
                                 style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem' }}
@@ -573,14 +557,14 @@ export const RoleManagementPage: React.FC = () => {
                               </button>
 
                               <button
-                                onClick={() => setConfirmRemoveUser(u)}
+                                onClick={() => setConfirmDeleteUser(u)}
                                 className="btn"
                                 style={{ padding: '0.4rem 0.65rem', fontSize: '0.75rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}
                                 disabled={updatingUserId === u._id}
-                                title="Remove assigned role and restore standard default role"
+                                title="Permanently delete this registered user account"
                               >
-                                <UserMinus size={13} />
-                                <span>Remove Role</span>
+                                <Trash2 size={13} />
+                                <span>Delete User</span>
                               </button>
                             </div>
                           </td>
@@ -781,43 +765,46 @@ export const RoleManagementPage: React.FC = () => {
             </div>
           )}
 
-          {/* Remove Role Confirmation Modal */}
-          {confirmRemoveUser && (
-            <div className="modal-overlay" onClick={() => setConfirmRemoveUser(null)}>
-              <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+          {/* Permanent Delete User Confirmation Modal */}
+          {confirmDeleteUser && (
+            <div className="modal-overlay" onClick={() => setConfirmDeleteUser(null)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '460px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <UserMinus size={20} color="#dc2626" /> Remove Role Confirmation
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Trash2 size={20} color="#dc2626" /> Permanent Delete User Confirmation
                   </h3>
                   <button
-                    onClick={() => setConfirmRemoveUser(null)}
+                    onClick={() => setConfirmDeleteUser(null)}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
                   >
                     <X size={18} />
                   </button>
                 </div>
 
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '0.75rem', borderRadius: '6px', marginBottom: '1rem', color: '#991b1b', fontSize: '0.825rem' }}>
+                  <strong>Warning:</strong> This action cannot be undone. Permanently deletes user account <strong>{confirmDeleteUser.email}</strong> from MongoDB and revokes all system access.
+                </div>
+
                 <p style={{ fontSize: '0.875rem', color: '#334155', lineHeight: '1.5', marginBottom: '1.25rem' }}>
-                  Remove <strong>{typeof confirmRemoveUser.role === 'object' && confirmRemoveUser.role !== null ? confirmRemoveUser.role.name : 'assigned'}</strong> role from{' '}
-                  <strong>{confirmRemoveUser.name}</strong> (<code>{confirmRemoveUser.email}</code>) and restore the default role?
+                  Are you sure you want to permanently delete registered user <strong>{confirmDeleteUser.name}</strong> (<code>{confirmDeleteUser.email}</code>)?
                 </p>
 
                 <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                   <button
-                    onClick={() => setConfirmRemoveUser(null)}
+                    onClick={() => setConfirmDeleteUser(null)}
                     className="btn"
                     style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.8rem', padding: '0.45rem 0.85rem' }}
-                    disabled={removingRole}
+                    disabled={deletingUser}
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={handleConfirmRemoveRole}
+                    onClick={handleConfirmDeleteUser}
                     className="btn"
                     style={{ background: '#dc2626', color: '#ffffff', fontSize: '0.8rem', padding: '0.45rem 1rem', border: 'none', fontWeight: 600 }}
-                    disabled={removingRole}
+                    disabled={deletingUser}
                   >
-                    {removingRole ? 'Removing...' : 'Confirm Remove'}
+                    {deletingUser ? 'Deleting...' : 'Confirm Delete User'}
                   </button>
                 </div>
               </div>

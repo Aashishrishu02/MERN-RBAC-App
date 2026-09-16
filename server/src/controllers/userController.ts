@@ -182,6 +182,49 @@ export const resetUserRole = async (req: Request, res: Response): Promise<void> 
   }
 };
 
+export const deleteUser = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const targetUser = await User.findById(id).populate<{ role: IRole }>('role');
+    if (!targetUser) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    // Safety Guard: Check if deleting target user would leave zero users with MANAGE_ROLES permission
+    const currentEffective = getUserEffectivePermissions(targetUser);
+    const currentUserHasManageRoles = currentEffective.includes(Permission.MANAGE_ROLES);
+
+    if (currentUserHasManageRoles) {
+      const allUsers = await User.find().populate<{ role: IRole }>('role');
+      const manageRolesCount = allUsers.filter((u) =>
+        getUserEffectivePermissions(u).includes(Permission.MANAGE_ROLES)
+      ).length;
+
+      if (manageRolesCount <= 1) {
+        res.status(400).json({
+          message:
+            'Safety Guard: Cannot delete the last remaining user with MANAGE_ROLES permission to prevent system lockout.',
+        });
+        return;
+      }
+    }
+
+    // Delete user account permanently from MongoDB
+    await User.findByIdAndDelete(id);
+
+    // Clean up any pending role assignment for this user's email if present
+    await PendingRoleAssignment.deleteOne({ email: targetUser.email.toLowerCase() });
+
+    res.json({
+      message: `User ${targetUser.name} (${targetUser.email}) permanently deleted.`,
+    });
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+};
+
 export const getUserPermissions = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;

@@ -690,5 +690,50 @@ describe('User Role Assignment API Tests', () => {
 
       process.env.NODE_ENV = originalEnv;
     });
+
+    it('34. DELETE /api/users/:id - Unauthorized user gets 403 Forbidden', async () => {
+      const res = await request(app)
+        .delete(`/api/users/${employeeUserId}`)
+        .set('Authorization', `Bearer ${employeeToken}`);
+
+      expect(res.status).toBe(403);
+      expect(res.body.message).toContain('MANAGE_ROLES');
+    });
+
+    it('35. DELETE /api/users/:id - Safety Guard blocks deleting last MANAGE_ROLES user', async () => {
+      const res = await request(app)
+        .delete(`/api/users/${ownerUserId}`)
+        .set('Authorization', `Bearer ${ownerToken}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('Safety Guard');
+    });
+
+    it('36. DELETE /api/users/:id - Successfully permanently deletes target registered user from MongoDB', async () => {
+      // Create temporary user to delete
+      const tempUser = await User.create({
+        name: 'Temp Delete User',
+        email: 'temp_delete@test.com',
+        password: 'Password123!',
+        role: employeeRoleId,
+      });
+
+      const deleteRes = await request(app)
+        .delete(`/api/users/${tempUser._id}`)
+        .set('Authorization', `Bearer ${ownerToken}`);
+
+      expect(deleteRes.status).toBe(200);
+      expect(deleteRes.body.message).toContain('permanently deleted');
+
+      // Verify user no longer exists in database
+      const deletedCheck = await User.findById(tempUser._id);
+      expect(deletedCheck).toBeNull();
+
+      // Verify deleted user cannot authenticate
+      const authRes = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'temp_delete@test.com', password: 'Password123!' });
+      expect(authRes.status).toBe(401);
+    });
   });
 });
