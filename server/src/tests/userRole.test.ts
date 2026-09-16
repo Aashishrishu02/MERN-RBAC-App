@@ -596,5 +596,99 @@ describe('User Role Assignment API Tests', () => {
       expect(res.body.valid).toBe(false);
       expect(res.body.message).toContain('Invalid or expired');
     });
+
+    it('29. POST /api/users/:id/reset-role - Unauthorized user gets 403 Forbidden', async () => {
+      const res = await request(app)
+        .post(`/api/users/${employeeUserId}/reset-role`)
+        .set('Authorization', `Bearer ${employeeToken}`);
+
+      expect(res.status).toBe(403);
+      expect(res.body.message).toContain('MANAGE_ROLES');
+    });
+
+    it('30. POST /api/users/:id/reset-role - Safety Guard blocks removing role from last MANAGE_ROLES user', async () => {
+      const res = await request(app)
+        .post(`/api/users/${ownerUserId}/reset-role`)
+        .set('Authorization', `Bearer ${ownerToken}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('Safety Guard');
+    });
+
+    it('31. Nodemailer Transporter - Mocked transporter successfully captures email dispatch and messageId', async () => {
+      const nodemailer = require('nodemailer');
+      const sendMailMock = jest.fn().mockResolvedValue({ messageId: '<mock-msg-id-12345@fieldops.com>' });
+      const spy = jest.spyOn(nodemailer, 'createTransport').mockReturnValue({
+        sendMail: sendMailMock,
+      } as any);
+
+      process.env.SMTP_HOST = 'smtp.testprovider.com';
+      process.env.SMTP_PORT = '587';
+      process.env.SMTP_USER = 'test_user';
+      process.env.SMTP_PASS = 'test_pass';
+
+      const res = await request(app)
+        .post('/api/users/role-assignment')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          email: 'mocked_smtp_test@test.com',
+          roleId: managerRoleId,
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.emailSent).toBe(true);
+      expect(sendMailMock).toHaveBeenCalled();
+
+      // Cleanup env
+      delete process.env.SMTP_HOST;
+      delete process.env.SMTP_USER;
+      delete process.env.SMTP_PASS;
+      spy.mockRestore();
+    });
+
+    it('32. SMTP Failure Handling - Reports emailSent: false when transporter fails', async () => {
+      const nodemailer = require('nodemailer');
+      const sendMailMock = jest.fn().mockRejectedValue(new Error('Connection refused to SMTP server'));
+      const spy = jest.spyOn(nodemailer, 'createTransport').mockReturnValue({
+        sendMail: sendMailMock,
+      } as any);
+
+      process.env.SMTP_HOST = 'smtp.testprovider.com';
+      process.env.SMTP_USER = 'test_user';
+      process.env.SMTP_PASS = 'test_pass';
+
+      const res = await request(app)
+        .post('/api/users/role-assignment')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          email: 'smtp_fail_test@test.com',
+          roleId: managerRoleId,
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.emailSent).toBe(false);
+      expect(res.body.message).toContain('email could not be sent');
+
+      delete process.env.SMTP_HOST;
+      delete process.env.SMTP_USER;
+      delete process.env.SMTP_PASS;
+      spy.mockRestore();
+    });
+
+    it('33. Production SMTP Configuration - Missing credentials in production environment reports clear error', async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      delete process.env.SMTP_HOST;
+      delete process.env.SMTP_USER;
+      delete process.env.SMTP_PASS;
+
+      const { sendRoleAssignmentEmail } = require('../services/emailService');
+      const result = await sendRoleAssignmentEmail('prod_test@test.com', 'Prod User', 'Manager');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('SMTP credentials');
+
+      process.env.NODE_ENV = originalEnv;
+    });
   });
 });

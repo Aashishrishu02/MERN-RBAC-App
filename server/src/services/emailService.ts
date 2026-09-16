@@ -2,13 +2,15 @@ import nodemailer from 'nodemailer';
 
 export interface SendEmailResult {
   success: boolean;
+  messageId?: string;
   error?: string;
 }
 
 export const getTransporter = () => {
   const host = process.env.SMTP_HOST;
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
-  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+  const secureEnv = process.env.SMTP_SECURE;
+  const secure = secureEnv === 'true' || (secureEnv !== 'false' && port === 465);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
 
@@ -27,6 +29,38 @@ export const getTransporter = () => {
   });
 };
 
+export const verifySmtpConfig = async (): Promise<{ success: boolean; error?: string }> => {
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT || '587', 10);
+  const secureEnv = process.env.SMTP_SECURE;
+  const secure = secureEnv === 'true' || (secureEnv !== 'false' && port === 465);
+  const user = process.env.SMTP_USER;
+
+  if (!host || !user || !process.env.SMTP_PASS) {
+    const msg = `SMTP Configuration Incomplete: Host=${host || 'undefined'}, User=${user || 'undefined'}, Port=${port}`;
+    if (process.env.NODE_ENV === 'production') {
+      console.error(`[SMTP Startup Diagnostic] ${msg}`);
+      return { success: false, error: msg };
+    }
+    console.log(`[SMTP Startup Diagnostic] Dev mode: Real SMTP disabled (${msg})`);
+    return { success: true };
+  }
+
+  try {
+    const transporter = getTransporter();
+    if (!transporter) {
+      return { success: false, error: 'Failed to initialize Nodemailer transporter' };
+    }
+
+    await transporter.verify();
+    console.log(`[SMTP Startup Diagnostic] SMTP Connection verified successfully. Host: ${host}, Port: ${port}, Secure: ${secure}, User: ${user}`);
+    return { success: true };
+  } catch (err: any) {
+    console.error(`[SMTP Startup Diagnostic Error] Failed to verify SMTP connection to ${host}:${port} - ${err.message}`);
+    return { success: false, error: err.message };
+  }
+};
+
 export const sendEmail = async (options: {
   to: string;
   subject: string;
@@ -39,19 +73,20 @@ export const sendEmail = async (options: {
 
     if (!transporter) {
       if (process.env.NODE_ENV === 'production') {
-        console.error('SMTP Error: SMTP server credentials are missing in production environment.');
+        const errorMsg = 'SMTP credentials (SMTP_HOST, SMTP_USER, SMTP_PASS) are missing or incomplete in production environment.';
+        console.error(`[SMTP Production Error] Delivery blocked for ${options.to}: ${errorMsg}`);
         return {
           success: false,
-          error: 'SMTP credentials are not configured on the server.',
+          error: errorMsg,
         };
       } else {
         console.log(`[Dev Mail Preview] To: ${options.to} | Subject: ${options.subject}`);
         console.log(`[Dev Mail Text]: ${options.text}`);
-        return { success: true };
+        return { success: true, messageId: 'dev-preview-mock-id' };
       }
     }
 
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: `"FieldOps System" <${fromAddress}>`,
       to: options.to,
       subject: options.subject,
@@ -59,9 +94,10 @@ export const sendEmail = async (options: {
       html: options.html,
     });
 
-    return { success: true };
+    console.log(`[SMTP Success] Email accepted for delivery to ${options.to}. MessageId: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
   } catch (error: any) {
-    console.error('SMTP Mail Transmission Error:', error.message || error);
+    console.error(`[SMTP Error] Delivery failed to ${options.to}:`, error.message || error);
     return {
       success: false,
       error: error.message || 'Failed to transmit email notification via SMTP.',
@@ -108,7 +144,10 @@ export const sendRoleInvitationEmail = async (
   roleName: string,
   inviteToken: string
 ): Promise<SendEmailResult> => {
-  const frontendUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:5173';
+  const frontendUrl =
+    process.env.FRONTEND_URL ||
+    process.env.CLIENT_URL ||
+    'https://mern-rbac-app-sand.vercel.app';
   const inviteLink = `${frontendUrl.replace(/\/+$/, '')}/register?invite=${inviteToken}`;
   const subject = "You've been invited to FieldOps";
 
@@ -149,21 +188,26 @@ export const sendRoleRemovalEmail = async (
   name: string,
   defaultRoleName: string
 ): Promise<SendEmailResult> => {
-  const subject = 'Your FieldOps role has been reset';
+  const subject = 'Your FieldOps role has been updated';
   const text = `Hello ${name},
 
-Your FieldOps account role has been reset to the default role (${defaultRoleName}) by an administrator.
+Your FieldOps account role has been updated by an administrator.
 
-Please log in to view your updated permissions.
+New role: ${defaultRoleName}
+
+Please log in to access your updated permissions.
 
 Regards,
 FieldOps Team`;
 
   const html = `
     <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-      <h2 style="color: #0f172a;">FieldOps Role Reset Notification</h2>
+      <h2 style="color: #0f172a;">FieldOps Role Update Notification</h2>
       <p>Hello <strong>${name}</strong>,</p>
-      <p>Your FieldOps account role has been reset to the default role (<strong>${defaultRoleName}</strong>) by an administrator.</p>
+      <p>Your FieldOps account role has been updated by an administrator.</p>
+      <div style="background: #f1f5f9; padding: 12px 16px; border-radius: 6px; font-weight: bold; margin: 15px 0;">
+        New Role: <span style="color: #4f46e5;">${defaultRoleName}</span>
+      </div>
       <p>Please log in to your account to view your updated permissions.</p>
       <br/>
       <p>Regards,<br/><strong>FieldOps Team</strong></p>

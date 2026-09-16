@@ -78,10 +78,13 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
+import { verifySmtpConfig } from './services/emailService';
+
 // Start Server listening on 0.0.0.0
 const startServer = async () => {
   await connectDB();
   await seedDatabase();
+  await verifySmtpConfig();
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 FieldOps Server listening on 0.0.0.0:${PORT}`);

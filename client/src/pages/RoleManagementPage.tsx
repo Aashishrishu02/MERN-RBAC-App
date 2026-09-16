@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ShieldAlert, Save, Info, Users, UserCheck, KeyRound, X, RotateCcw, UserPlus, Trash2, Mail } from 'lucide-react';
+import { ShieldAlert, Save, Info, Users, UserCheck, KeyRound, X, RotateCcw, UserPlus, Trash2, Mail, UserMinus } from 'lucide-react';
 import { roleService, userService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Navbar } from '../components/Navbar';
@@ -26,6 +26,10 @@ export const RoleManagementPage: React.FC = () => {
   const [assigningByEmail, setAssigningByEmail] = useState(false);
   const [assignError, setAssignError] = useState('');
   const [assignSuccess, setAssignSuccess] = useState('');
+
+  // Remove Role Confirmation modal state
+  const [confirmRemoveUser, setConfirmRemoveUser] = useState<UserListItem | null>(null);
+  const [removingRole, setRemovingRole] = useState(false);
 
   // User Direct Permissions Modal state
   const [selectedUserForPerms, setSelectedUserForPerms] = useState<UserListItem | null>(null);
@@ -170,24 +174,29 @@ export const RoleManagementPage: React.FC = () => {
     }
   };
 
-  const handleResetUserRole = async (targetUser: UserListItem) => {
-    setUpdatingUserId(targetUser._id);
+
+  const handleConfirmRemoveRole = async () => {
+    if (!confirmRemoveUser) return;
+
+    setRemovingRole(true);
     setError('');
     setSuccess('');
 
     try {
-      const res = await userService.resetUserRole(targetUser._id);
+      const res = await userService.resetUserRole(confirmRemoveUser._id);
       setSuccess(res.message);
 
-      if (currentUser?.id === targetUser._id) {
+      if (currentUser?.id === confirmRemoveUser._id) {
         await refreshUser();
       }
 
       await fetchUsersData();
+      setConfirmRemoveUser(null);
     } catch (err: any) {
-      setError(err.response?.data?.message || `Failed to reset role for ${targetUser.name}.`);
+      setError(err.response?.data?.message || `Failed to remove role for ${confirmRemoveUser.name}.`);
+      setConfirmRemoveUser(null);
     } finally {
-      setUpdatingUserId(null);
+      setRemovingRole(false);
     }
   };
 
@@ -545,18 +554,33 @@ export const RoleManagementPage: React.FC = () => {
                                 disabled={updatingUserId === u._id || !isRoleChanged}
                               >
                                 <UserCheck size={13} />
-                                <span>{updatingUserId === u._id ? 'Updating...' : 'Save Role'}</span>
+                                <span>{updatingUserId === u._id ? 'Updating...' : 'Change Role'}</span>
                               </button>
 
                               <button
-                                onClick={() => handleResetUserRole(u)}
+                                onClick={() => handleOpenPermissionsModal(u)}
                                 className="btn"
-                                style={{ padding: '0.4rem 0.65rem', fontSize: '0.75rem', background: '#f8fafc', color: '#475569', border: '1px solid #cbd5e1' }}
-                                disabled={updatingUserId === u._id}
-                                title="Reset user's role to standard default and clear custom permission overrides"
+                                style={{
+                                  padding: '0.4rem 0.75rem',
+                                  fontSize: '0.75rem',
+                                  background: '#f1f5f9',
+                                  color: '#334155',
+                                  border: '1px solid #cbd5e1',
+                                }}
                               >
-                                <RotateCcw size={13} />
-                                <span>Reset Role</span>
+                                <KeyRound size={13} />
+                                <span>Manage Permissions</span>
+                              </button>
+
+                              <button
+                                onClick={() => setConfirmRemoveUser(u)}
+                                className="btn"
+                                style={{ padding: '0.4rem 0.65rem', fontSize: '0.75rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}
+                                disabled={updatingUserId === u._id}
+                                title="Remove assigned role and restore standard default role"
+                              >
+                                <UserMinus size={13} />
+                                <span>Remove Role</span>
                               </button>
                             </div>
                           </td>
@@ -751,6 +775,49 @@ export const RoleManagementPage: React.FC = () => {
                   >
                     <Save size={13} />
                     <span>{savingUserPerms ? 'Saving...' : 'Save Permissions'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Remove Role Confirmation Modal */}
+          {confirmRemoveUser && (
+            <div className="modal-overlay" onClick={() => setConfirmRemoveUser(null)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <UserMinus size={20} color="#dc2626" /> Remove Role Confirmation
+                  </h3>
+                  <button
+                    onClick={() => setConfirmRemoveUser(null)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <p style={{ fontSize: '0.875rem', color: '#334155', lineHeight: '1.5', marginBottom: '1.25rem' }}>
+                  Remove <strong>{typeof confirmRemoveUser.role === 'object' && confirmRemoveUser.role !== null ? confirmRemoveUser.role.name : 'assigned'}</strong> role from{' '}
+                  <strong>{confirmRemoveUser.name}</strong> (<code>{confirmRemoveUser.email}</code>) and restore the default role?
+                </p>
+
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => setConfirmRemoveUser(null)}
+                    className="btn"
+                    style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.8rem', padding: '0.45rem 0.85rem' }}
+                    disabled={removingRole}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmRemoveRole}
+                    className="btn"
+                    style={{ background: '#dc2626', color: '#ffffff', fontSize: '0.8rem', padding: '0.45rem 1rem', border: 'none', fontWeight: 600 }}
+                    disabled={removingRole}
+                  >
+                    {removingRole ? 'Removing...' : 'Confirm Remove'}
                   </button>
                 </div>
               </div>
