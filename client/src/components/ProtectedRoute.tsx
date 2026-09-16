@@ -3,7 +3,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 interface ProtectedRouteProps {
-  permission?: string;
+  permission?: string | string[];
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permission }) => {
@@ -24,8 +24,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permission }) =>
     return <Navigate to="/login" replace />;
   }
 
-  if (permission && !hasPermission(permission)) {
-    return <Navigate to="/unauthorized" replace />;
+  if (permission) {
+    const requiredPermissions = Array.isArray(permission) ? permission : [permission];
+    const hasAnyPermission = requiredPermissions.some((p) => hasPermission(p));
+    if (!hasAnyPermission) {
+      return <Navigate to="/unauthorized" replace />;
+    }
   }
 
   return <Outlet />;

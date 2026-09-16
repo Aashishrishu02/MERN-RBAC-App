@@ -42,11 +42,11 @@ export const App: React.FC = () => {
             <Route element={<MainLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               
-              <Route element={<ProtectedRoute permission={Permission.READ_SELF_ATTENDANCE} />}>
+              <Route element={<ProtectedRoute permission={[Permission.READ_SELF_ATTENDANCE, Permission.READ_ALL_ATTENDANCE]} />}>
                 <Route path="/attendance" element={<AttendancePage />} />
               </Route>
 
-              <Route element={<ProtectedRoute permission={Permission.READ_SELF_VISIT} />}>
+              <Route element={<ProtectedRoute permission={[Permission.READ_SELF_VISIT, Permission.READ_ALL_VISIT]} />}>
                 <Route path="/visits" element={<VisitsPage />} />
               </Route>
 
