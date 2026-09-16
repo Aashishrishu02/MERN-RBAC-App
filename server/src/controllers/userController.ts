@@ -1,8 +1,14 @@
+import crypto from 'crypto';
 import { Request, Response } from 'express';
 import { User } from '../models/User';
 import { Role, Permission, IRole } from '../models/Role';
 import { PendingRoleAssignment } from '../models/PendingRoleAssignment';
 import { getUserEffectivePermissions, AuthRequest } from '../middleware/auth';
+import {
+  sendRoleAssignmentEmail,
+  sendRoleInvitationEmail,
+  sendRoleRemovalEmail,
+} from '../services/emailService';
 
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -86,8 +92,82 @@ export const updateUserRole = async (req: Request, res: Response): Promise<void>
 
     const updatedEffective = getUserEffectivePermissions(updatedUser!);
 
+    const emailResult = await sendRoleAssignmentEmail(targetUser.email, targetUser.name, targetRole.name);
+
     res.json({
-      message: 'User role updated successfully',
+      message: emailResult.success
+        ? `Role updated to ${targetRole.name} and notification email sent.`
+        : `Role updated to ${targetRole.name}, but email notification could not be sent.`,
+      emailSent: emailResult.success,
+      user: {
+        _id: updatedUser!._id,
+        name: updatedUser!.name,
+        email: updatedUser!.email,
+        role: updatedUser!.role,
+        customPermissions: updatedUser!.customPermissions || null,
+        effectivePermissions: updatedEffective,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+};
+
+export const resetUserRole = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const targetUser = await User.findById(id).populate<{ role: IRole }>('role');
+    if (!targetUser) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    const defaultRole = await Role.findOne({ isDefault: true });
+    if (!defaultRole) {
+      res.status(500).json({ message: 'Default role not found. Run seed script.' });
+      return;
+    }
+
+    // Safety Guard: Check if demoting target user would leave zero users with MANAGE_ROLES permission
+    const currentEffective = getUserEffectivePermissions(targetUser);
+    const currentUserHasManageRoles = currentEffective.includes(Permission.MANAGE_ROLES);
+    const newRoleHasManageRoles = defaultRole.permissions?.includes(Permission.MANAGE_ROLES);
+
+    if (currentUserHasManageRoles && !newRoleHasManageRoles) {
+      const allUsers = await User.find().populate<{ role: IRole }>('role');
+      const manageRolesCount = allUsers.filter((u) =>
+        getUserEffectivePermissions(u).includes(Permission.MANAGE_ROLES)
+      ).length;
+
+      if (manageRolesCount <= 1) {
+        res.status(400).json({
+          message:
+            'Safety Guard: Cannot reset the last remaining user with MANAGE_ROLES permission to default role.',
+        });
+        return;
+      }
+    }
+
+    targetUser.customPermissions = undefined;
+    targetUser.role = defaultRole._id as any;
+    await targetUser.save();
+
+    await PendingRoleAssignment.deleteOne({ email: targetUser.email.toLowerCase() });
+
+    const updatedUser = await User.findById(targetUser._id)
+      .select('-password -resetPasswordToken -resetPasswordExpires')
+      .populate<{ role: IRole }>('role');
+
+    const updatedEffective = getUserEffectivePermissions(updatedUser!);
+
+    const emailResult = await sendRoleRemovalEmail(targetUser.email, targetUser.name, defaultRole.name);
+
+    res.json({
+      message: emailResult.success
+        ? `Role reset to default (${defaultRole.name}) and notification email sent.`
+        : `Role reset to default (${defaultRole.name}), but notification email could not be sent.`,
+      emailSent: emailResult.success,
       user: {
         _id: updatedUser!._id,
         name: updatedUser!.name,
@@ -268,10 +348,14 @@ export const createOrAssignRoleByEmail = async (req: AuthRequest, res: Response)
         .populate<{ role: IRole }>('role');
 
       const updatedEffective = getUserEffectivePermissions(updatedUser!);
+      const emailResult = await sendRoleAssignmentEmail(existingUser.email, existingUser.name, targetRole.name);
 
       res.json({
         status: 'UPDATED',
-        message: `User found. Role updated to ${targetRole.name}.`,
+        message: emailResult.success
+          ? `User found. Role updated to ${targetRole.name} and notification email sent.`
+          : `User found. Role updated to ${targetRole.name}, but notification email could not be sent.`,
+        emailSent: emailResult.success,
         user: {
           _id: updatedUser!._id,
           name: updatedUser!.name,
@@ -284,19 +368,28 @@ export const createOrAssignRoleByEmail = async (req: AuthRequest, res: Response)
       return;
     }
 
-    // If user does not exist, create or update PendingRoleAssignment
+    // Unregistered user -> generate raw token, tokenHash, expiresAt
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
     const creatorId = req.user?.id;
     const assignment = await PendingRoleAssignment.findOneAndUpdate(
       { email: normalizedEmail },
-      { role: targetRole._id, createdBy: creatorId },
+      { role: targetRole._id, createdBy: creatorId, tokenHash, expiresAt, usedAt: undefined },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     )
       .populate<{ role: IRole }>('role')
       .populate<{ name: string; email: string }>('createdBy', 'name email');
 
+    const emailResult = await sendRoleInvitationEmail(normalizedEmail, targetRole.name, rawToken);
+
     res.status(200).json({
       status: 'PENDING',
-      message: `Email verified. ${targetRole.name} role will be assigned when this user registers/logs in.`,
+      message: emailResult.success
+        ? 'Role assigned and invitation email sent.'
+        : 'Role assignment saved, but email could not be sent.',
+      emailSent: emailResult.success,
       assignment: {
         _id: assignment._id,
         email: assignment.email,
@@ -344,4 +437,36 @@ export const deletePendingRoleAssignment = async (req: Request, res: Response): 
     res.status(500).json({ message: (error as Error).message });
   }
 };
+
+export const verifyInvitationToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token } = req.query;
+    if (!token || typeof token !== 'string') {
+      res.status(400).json({ valid: false, message: 'Invitation token is required' });
+      return;
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(token.trim()).digest('hex');
+    const assignment = await PendingRoleAssignment.findOne({
+      tokenHash,
+      usedAt: undefined,
+      expiresAt: { $gt: new Date() },
+    }).populate<{ role: IRole }>('role');
+
+    if (!assignment) {
+      res.status(400).json({ valid: false, message: 'Invalid or expired invitation token' });
+      return;
+    }
+
+    const roleDoc = assignment.role as IRole;
+    res.json({
+      valid: true,
+      email: assignment.email,
+      roleName: roleDoc?.name || 'Assigned Role',
+    });
+  } catch (error) {
+    res.status(500).json({ valid: false, message: (error as Error).message });
+  }
+};
+
 

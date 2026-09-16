@@ -155,9 +155,7 @@ export const RoleManagementPage: React.FC = () => {
 
     try {
       const res = await userService.updateUserRole(targetUser._id, newRoleId);
-      const assignedRoleName =
-        typeof res.user.role === 'object' && res.user.role !== null ? res.user.role.name : 'new role';
-      setSuccess(`Updated role for ${targetUser.name} to ${assignedRoleName}.`);
+      setSuccess(res.message);
 
       // If updating current logged in user's role, refresh session immediately
       if (currentUser?.id === targetUser._id) {
@@ -167,6 +165,27 @@ export const RoleManagementPage: React.FC = () => {
       await fetchUsersData();
     } catch (err: any) {
       setError(err.response?.data?.message || `Failed to update role for ${targetUser.name}.`);
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
+  const handleResetUserRole = async (targetUser: UserListItem) => {
+    setUpdatingUserId(targetUser._id);
+    setError('');
+    setSuccess('');
+
+    try {
+      const res = await userService.resetUserRole(targetUser._id);
+      setSuccess(res.message);
+
+      if (currentUser?.id === targetUser._id) {
+        await refreshUser();
+      }
+
+      await fetchUsersData();
+    } catch (err: any) {
+      setError(err.response?.data?.message || `Failed to reset role for ${targetUser.name}.`);
     } finally {
       setUpdatingUserId(null);
     }
@@ -527,6 +546,17 @@ export const RoleManagementPage: React.FC = () => {
                               >
                                 <UserCheck size={13} />
                                 <span>{updatingUserId === u._id ? 'Updating...' : 'Save Role'}</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleResetUserRole(u)}
+                                className="btn"
+                                style={{ padding: '0.4rem 0.65rem', fontSize: '0.75rem', background: '#f8fafc', color: '#475569', border: '1px solid #cbd5e1' }}
+                                disabled={updatingUserId === u._id}
+                                title="Reset user's role to standard default and clear custom permission overrides"
+                              >
+                                <RotateCcw size={13} />
+                                <span>Reset Role</span>
                               </button>
                             </div>
                           </td>

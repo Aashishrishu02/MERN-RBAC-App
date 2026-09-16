@@ -57,8 +57,14 @@ export const authService = {
     const res = await api.post('/auth/google', { idToken });
     return res.data;
   },
-  register: async (name: string, email: string, password: string, roleId?: string): Promise<AuthResponse> => {
-    const res = await api.post('/auth/register', { name, email, password, roleId });
+  register: async (
+    name: string,
+    email: string,
+    password: string,
+    roleId?: string,
+    inviteToken?: string
+  ): Promise<AuthResponse> => {
+    const res = await api.post('/auth/register', { name, email, password, roleId, inviteToken });
     return res.data;
   },
   forgotPassword: async (email: string) => {
@@ -95,6 +101,10 @@ export const userService = {
     const res = await api.put(`/users/${userId}/role`, { roleId });
     return res.data;
   },
+  resetUserRole: async (userId: string): Promise<{ user: UserListItem; message: string }> => {
+    const res = await api.post(`/users/${userId}/reset-role`);
+    return res.data;
+  },
   getUserPermissions: async (userId: string): Promise<UserPermissionsResponse> => {
     const res = await api.get(`/users/${userId}/permissions`);
     return res.data;
@@ -112,6 +122,7 @@ export const userService = {
   ): Promise<{
     status: 'UPDATED' | 'PENDING';
     message: string;
+    emailSent?: boolean;
     user?: UserListItem;
     assignment?: PendingRoleAssignmentItem;
   }> => {
@@ -124,6 +135,10 @@ export const userService = {
   },
   deletePendingRoleAssignment: async (id: string): Promise<{ message: string }> => {
     const res = await api.delete(`/users/role-assignment/${id}`);
+    return res.data;
+  },
+  verifyInviteToken: async (token: string): Promise<{ valid: boolean; email?: string; roleName?: string; message?: string }> => {
+    const res = await api.get('/users/invite/verify', { params: { token } });
     return res.data;
   },
 };

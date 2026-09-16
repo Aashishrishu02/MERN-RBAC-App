@@ -6,6 +6,9 @@ export interface IPendingRoleAssignment extends Document {
   email: string;
   role: mongoose.Types.ObjectId | IRole;
   createdBy: mongoose.Types.ObjectId | IUser;
+  tokenHash?: string;
+  expiresAt?: Date;
+  usedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,6 +31,19 @@ const PendingRoleAssignmentSchema: Schema = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+    },
+    tokenHash: {
+      type: String,
+      index: true,
+      default: undefined,
+    },
+    expiresAt: {
+      type: Date,
+      default: undefined,
+    },
+    usedAt: {
+      type: Date,
+      default: undefined,
     },
   },
   {

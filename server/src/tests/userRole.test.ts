@@ -4,6 +4,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import app from '../index';
 import { Role, Permission } from '../models/Role';
 import { User } from '../models/User';
+import { PendingRoleAssignment } from '../models/PendingRoleAssignment';
 import bcrypt from 'bcryptjs';
 
 let mongoServer: MongoMemoryServer;
@@ -120,7 +121,7 @@ describe('User Role Assignment API Tests', () => {
       .send({ roleId: managerRoleId });
 
     expect(res.status).toBe(200);
-    expect(res.body.message).toContain('User role updated successfully');
+    expect(res.body.message).toContain('Role updated');
     expect(res.body.user.role.name).toBe('Manager');
   });
 
@@ -375,7 +376,7 @@ describe('User Role Assignment API Tests', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.status).toBe('PENDING');
-      expect(res.body.message).toContain('Email verified');
+      expect(res.body.message).toContain('Role assigned');
       expect(res.body.assignment.email).toBe('erprincejhaa@gmail.com');
     });
 
@@ -529,6 +530,71 @@ describe('User Role Assignment API Tests', () => {
 
       expect(deleteRes.status).toBe(200);
       expect(deleteRes.body.message).toContain('removed successfully');
+    });
+
+    it('25. POST /api/users/:id/reset-role - Resets user role to default role and clears custom permissions', async () => {
+      // Create user with custom permissions
+      const hashedPassword = await bcrypt.hash('Password123!', 10);
+      const userToReset = await User.create({
+        name: 'Reset Role Test User',
+        email: 'reset_role_test@test.com',
+        password: hashedPassword,
+        role: managerRoleId,
+        customPermissions: [Permission.MANAGE_ROLES],
+      });
+      const userId = (userToReset._id as any).toString();
+
+      const res = await request(app)
+        .post(`/api/users/${userId}/reset-role`)
+        .set('Authorization', `Bearer ${ownerToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toContain('Role reset to default');
+      expect(res.body.user.role.name).toBe('Field Employee');
+      expect(res.body.user.customPermissions).toBeNull();
+    });
+
+    it('26. Invitation token is securely stored as SHA-256 hash in database', async () => {
+      const createRes = await request(app)
+        .post('/api/users/role-assignment')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          email: 'secure_token_test@test.com',
+          roleId: managerRoleId,
+        });
+
+      expect(createRes.status).toBe(200);
+      const assignmentDoc = await PendingRoleAssignment.findOne({ email: 'secure_token_test@test.com' });
+      expect(assignmentDoc).not.toBeNull();
+      expect(assignmentDoc?.tokenHash).toBeDefined();
+      expect(assignmentDoc?.tokenHash?.length).toBe(64); // SHA-256 hash length in hex
+    });
+
+    it('27. GET /api/users/invite/verify - Verifies valid invitation token', async () => {
+      // Create pending role assignment manually with known token
+      const rawToken = 'test_raw_invitation_token_12345';
+      const tokenHash = require('crypto').createHash('sha256').update(rawToken).digest('hex');
+
+      await PendingRoleAssignment.create({
+        email: 'token_verify_test@test.com',
+        role: managerRoleId,
+        createdBy: ownerUserId,
+        tokenHash,
+        expiresAt: new Date(Date.now() + 600000),
+      });
+
+      const verifyRes = await request(app).get(`/api/users/invite/verify?token=${rawToken}`);
+      expect(verifyRes.status).toBe(200);
+      expect(verifyRes.body.valid).toBe(true);
+      expect(verifyRes.body.email).toBe('token_verify_test@test.com');
+      expect(verifyRes.body.roleName).toBe('Manager');
+    });
+
+    it('28. GET /api/users/invite/verify - Rejects invalid or expired invitation token', async () => {
+      const res = await request(app).get('/api/users/invite/verify?token=invalid_token_99999');
+      expect(res.status).toBe(400);
+      expect(res.body.valid).toBe(false);
+      expect(res.body.message).toContain('Invalid or expired');
     });
   });
 });

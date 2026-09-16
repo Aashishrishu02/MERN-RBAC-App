@@ -1,0 +1,174 @@
+import nodemailer from 'nodemailer';
+
+export interface SendEmailResult {
+  success: boolean;
+  error?: string;
+}
+
+export const getTransporter = () => {
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT || '587', 10);
+  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  if (!host || !user || !pass) {
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: {
+      user,
+      pass,
+    },
+  });
+};
+
+export const sendEmail = async (options: {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+}): Promise<SendEmailResult> => {
+  try {
+    const transporter = getTransporter();
+    const fromAddress = process.env.SMTP_FROM || process.env.EMAIL_FROM || 'noreply@fieldops.com';
+
+    if (!transporter) {
+      if (process.env.NODE_ENV === 'production') {
+        console.error('SMTP Error: SMTP server credentials are missing in production environment.');
+        return {
+          success: false,
+          error: 'SMTP credentials are not configured on the server.',
+        };
+      } else {
+        console.log(`[Dev Mail Preview] To: ${options.to} | Subject: ${options.subject}`);
+        console.log(`[Dev Mail Text]: ${options.text}`);
+        return { success: true };
+      }
+    }
+
+    await transporter.sendMail({
+      from: `"FieldOps System" <${fromAddress}>`,
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      html: options.html,
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('SMTP Mail Transmission Error:', error.message || error);
+    return {
+      success: false,
+      error: error.message || 'Failed to transmit email notification via SMTP.',
+    };
+  }
+};
+
+export const sendRoleAssignmentEmail = async (
+  email: string,
+  name: string,
+  roleName: string
+): Promise<SendEmailResult> => {
+  const subject = 'Your FieldOps role has been updated';
+  const text = `Hello ${name},
+
+Your FieldOps account role has been updated by an administrator.
+
+New role: ${roleName}
+
+Please log in to access your updated permissions.
+
+Regards,
+FieldOps Team`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+      <h2 style="color: #0f172a;">FieldOps Role Update Notification</h2>
+      <p>Hello <strong>${name}</strong>,</p>
+      <p>Your FieldOps account role has been updated by an administrator.</p>
+      <div style="background: #f1f5f9; padding: 12px 16px; border-radius: 6px; font-weight: bold; margin: 15px 0;">
+        New Role: <span style="color: #4f46e5;">${roleName}</span>
+      </div>
+      <p>Please log in to your account to view your updated permissions.</p>
+      <br/>
+      <p>Regards,<br/><strong>FieldOps Team</strong></p>
+    </div>
+  `;
+
+  return sendEmail({ to: email, subject, text, html });
+};
+
+export const sendRoleInvitationEmail = async (
+  email: string,
+  roleName: string,
+  inviteToken: string
+): Promise<SendEmailResult> => {
+  const frontendUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:5173';
+  const inviteLink = `${frontendUrl.replace(/\/+$/, '')}/register?invite=${inviteToken}`;
+  const subject = "You've been invited to FieldOps";
+
+  const text = `Hello,
+
+An administrator has pre-assigned the ${roleName} role to your email address (${email}) on FieldOps.
+
+Please click the link below to complete your account registration and access your permissions:
+${inviteLink}
+
+This invitation link is valid for 7 days.
+
+Regards,
+FieldOps Team`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+      <h2 style="color: #0f172a;">You've Been Invited to FieldOps</h2>
+      <p>Hello,</p>
+      <p>An administrator has pre-assigned the <strong>${roleName}</strong> role to your email address (<code>${email}</code>) on FieldOps.</p>
+      <p>Click the button below to complete your registration and claim your assigned permissions:</p>
+      <div style="margin: 20px 0;">
+        <a href="${inviteLink}" style="background: #0f172a; color: #ffffff; padding: 12px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">
+          Accept Invitation & Register
+        </a>
+      </div>
+      <p style="font-size: 0.85em; color: #64748b;">Or copy this link into your browser: <br/><a href="${inviteLink}">${inviteLink}</a></p>
+      <br/>
+      <p>Regards,<br/><strong>FieldOps Team</strong></p>
+    </div>
+  `;
+
+  return sendEmail({ to: email, subject, text, html });
+};
+
+export const sendRoleRemovalEmail = async (
+  email: string,
+  name: string,
+  defaultRoleName: string
+): Promise<SendEmailResult> => {
+  const subject = 'Your FieldOps role has been reset';
+  const text = `Hello ${name},
+
+Your FieldOps account role has been reset to the default role (${defaultRoleName}) by an administrator.
+
+Please log in to view your updated permissions.
+
+Regards,
+FieldOps Team`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+      <h2 style="color: #0f172a;">FieldOps Role Reset Notification</h2>
+      <p>Hello <strong>${name}</strong>,</p>
+      <p>Your FieldOps account role has been reset to the default role (<strong>${defaultRoleName}</strong>) by an administrator.</p>
+      <p>Please log in to your account to view your updated permissions.</p>
+      <br/>
+      <p>Regards,<br/><strong>FieldOps Team</strong></p>
+    </div>
+  `;
+
+  return sendEmail({ to: email, subject, text, html });
+};

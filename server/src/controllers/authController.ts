@@ -18,7 +18,7 @@ const generateToken = (userId: string): string => {
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, email, password, roleId } = req.body;
+    const { name, email, password, roleId, inviteToken } = req.body;
 
     if (!name || !email || !password) {
       res.status(400).json({ message: 'Name, email, and password are required' });
@@ -32,7 +32,27 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const pendingAssignment = await PendingRoleAssignment.findOne({ email: normalizedEmail });
+    let pendingAssignment = null;
+    if (inviteToken && typeof inviteToken === 'string') {
+      const tokenHash = crypto.createHash('sha256').update(inviteToken.trim()).digest('hex');
+      pendingAssignment = await PendingRoleAssignment.findOne({
+        tokenHash,
+        usedAt: undefined,
+        expiresAt: { $gt: new Date() },
+      });
+
+      if (!pendingAssignment) {
+        res.status(400).json({ message: 'Invalid or expired invitation token' });
+        return;
+      }
+
+      if (pendingAssignment.email.toLowerCase() !== normalizedEmail) {
+        res.status(400).json({ message: 'Invitation email does not match registration email' });
+        return;
+      }
+    } else {
+      pendingAssignment = await PendingRoleAssignment.findOne({ email: normalizedEmail });
+    }
 
     let targetRoleId = roleId;
     if (pendingAssignment) {
