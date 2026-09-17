@@ -3,13 +3,12 @@ import { ShieldAlert, Save, Info, Users, UserCheck, KeyRound, X, RotateCcw, User
 import { roleService, userService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Navbar } from '../components/Navbar';
-import { Role, Permission, UserListItem, PendingRoleAssignmentItem } from '../types';
+import { Role, Permission, UserListItem } from '../types';
 
 export const RoleManagementPage: React.FC = () => {
   const { user: currentUser, refreshUser, hasPermission } = useAuth();
   const [roles, setRoles] = useState<Role[]>([]);
   const [users, setUsers] = useState<UserListItem[]>([]);
-  const [pendingAssignments, setPendingAssignments] = useState<PendingRoleAssignmentItem[]>([]);
   const [availablePermissions, setAvailablePermissions] = useState<string[]>([]);
   const [rolePermissionsState, setRolePermissionsState] = useState<Record<string, string[]>>({});
   const [selectedUserRoles, setSelectedUserRoles] = useState<Record<string, string>>({});
@@ -38,13 +37,6 @@ export const RoleManagementPage: React.FC = () => {
   const [provisioning, setProvisioning] = useState(false);
   const [provisionError, setProvisionError] = useState('');
   const [provisionSuccess, setProvisionSuccess] = useState('');
-
-  // Assign Role by Email state
-  const [assignEmail, setAssignEmail] = useState('');
-  const [assignRoleId, setAssignRoleId] = useState('');
-  const [assigningByEmail, setAssigningByEmail] = useState(false);
-  const [assignError, setAssignError] = useState('');
-  const [assignSuccess, setAssignSuccess] = useState('');
 
   // Delete User Confirmation modal state
   const [confirmDeleteUser, setConfirmDeleteUser] = useState<UserListItem | null>(null);
@@ -81,7 +73,6 @@ export const RoleManagementPage: React.FC = () => {
       const data = await roleService.getRoles();
       setRoles(data.roles);
       if (data.roles.length > 0) {
-        if (!assignRoleId) setAssignRoleId(data.roles[0]._id);
         if (!provisionRoleId) setProvisionRoleId(data.roles[0]._id);
         if (!genRoleId) setGenRoleId(data.roles[0]._id);
       }
@@ -113,19 +104,9 @@ export const RoleManagementPage: React.FC = () => {
     }
   };
 
-  const fetchPendingAssignmentsData = async () => {
-    try {
-      const data = await userService.getPendingRoleAssignments();
-      setPendingAssignments(data.assignments);
-    } catch (err: any) {
-      console.error('Failed to fetch pending role assignments:', err);
-    }
-  };
-
   useEffect(() => {
     fetchRolesData();
     fetchUsersData();
-    fetchPendingAssignmentsData();
   }, []);
 
   const handleTogglePermission = (role: Role, permission: string) => {
@@ -292,27 +273,6 @@ export const RoleManagementPage: React.FC = () => {
     }
   };
 
-  const handleAssignRoleByEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!assignEmail.trim() || !assignRoleId) return;
-
-    setAssigningByEmail(true);
-    setAssignError('');
-    setAssignSuccess('');
-
-    try {
-      const res = await userService.assignRoleByEmail(assignEmail, assignRoleId);
-      setAssignSuccess(res.message);
-      setAssignEmail('');
-      await fetchUsersData();
-      await fetchPendingAssignmentsData();
-    } catch (err: any) {
-      setAssignError(err.response?.data?.message || 'Failed to assign role by email.');
-    } finally {
-      setAssigningByEmail(false);
-    }
-  };
-
   const handleGenerateCredentials = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!genRoleId) return;
@@ -363,16 +323,6 @@ export const RoleManagementPage: React.FC = () => {
       setProvisionError(extractErrorMessage(err, 'Failed to provision user.'));
     } finally {
       setProvisioning(false);
-    }
-  };
-
-  const handleDeletePendingAssignment = async (id: string, email: string) => {
-    try {
-      await userService.deletePendingRoleAssignment(id);
-      setSuccess(`Removed pending role assignment for ${email}`);
-      await fetchPendingAssignmentsData();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to remove pending role assignment.');
     }
   };
 
@@ -588,126 +538,6 @@ export const RoleManagementPage: React.FC = () => {
               </button>
             </form>
           </div>
-
-          {/* Section 0B: Assign Role by Email (Invitation Flow) */}
-          <div className="saas-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-            <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <UserPlus size={18} color="#0f172a" />
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-                Assign Role by Email
-              </h3>
-            </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem', marginTop: '0.1rem', marginBottom: '1.25rem' }}>
-              Pre-assign a role to an email before user registration or update an existing registered user&apos;s role.
-            </p>
-
-            {assignError && <div className="alert alert-danger" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>{assignError}</div>}
-            {assignSuccess && <div className="alert alert-success" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>{assignSuccess}</div>}
-
-            <form onSubmit={handleAssignRoleByEmail} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: '240px' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                  Email Address
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Mail size={16} color="#64748b" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
-                  <input
-                    type="email"
-                    className="form-input"
-                    style={{ paddingLeft: '2.4rem', fontSize: '0.85rem' }}
-                    placeholder="xyz@gmail.com"
-                    value={assignEmail}
-                    onChange={(e) => setAssignEmail(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div style={{ width: '180px' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                  Target Role
-                </label>
-                <select
-                  className="form-input"
-                  style={{ fontSize: '0.85rem' }}
-                  value={assignRoleId}
-                  onChange={(e) => setAssignRoleId(e.target.value)}
-                >
-                  {roles.map((r) => (
-                    <option key={r._id} value={r._id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <button
-                type="submit"
-                className="btn btn-primary"
-                style={{ padding: '0.55rem 1.1rem', fontSize: '0.825rem', height: '38px' }}
-                disabled={assigningByEmail || !assignEmail.trim()}
-              >
-                <UserPlus size={15} />
-                <span>{assigningByEmail ? 'Verifying...' : 'Verify & Assign'}</span>
-              </button>
-            </form>
-          </div>
-
-          {/* Section 0.5: Pending Role Assignments */}
-          {pendingAssignments.length > 0 && (
-            <div className="saas-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-              <div style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Mail size={18} color="#0f172a" />
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-                  Pending Role Assignments ({pendingAssignments.length})
-                </h3>
-              </div>
-              <div className="table-container">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Email</th>
-                      <th>Pre-assigned Role</th>
-                      <th>Created By</th>
-                      <th>Created Date</th>
-                      <th style={{ textAlign: 'center' }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pendingAssignments.map((p) => {
-                      const roleName = typeof p.role === 'object' && p.role !== null ? p.role.name : 'Unknown';
-                      const creatorName = typeof p.createdBy === 'object' && p.createdBy !== null ? p.createdBy.name : 'Owner';
-                      return (
-                        <tr key={p._id}>
-                          <td style={{ fontWeight: 600, color: '#4f46e5' }}>{p.email}</td>
-                          <td>
-                            <span style={{ padding: '0.2rem 0.55rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' }}>
-                              {roleName} (Pending)
-                            </span>
-                          </td>
-                          <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{creatorName}</td>
-                          <td style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                            {new Date(p.createdAt).toLocaleDateString()}
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <button
-                              onClick={() => handleDeletePendingAssignment(p._id, p.email)}
-                              className="btn"
-                              style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}
-                              title="Cancel pending role assignment"
-                            >
-                              <Trash2 size={13} />
-                              <span>Cancel</span>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
 
           {/* Section 1: Registered User Role Assignment */}
           <div className="saas-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>

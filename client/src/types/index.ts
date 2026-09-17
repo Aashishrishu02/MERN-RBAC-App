@@ -45,14 +45,6 @@ export interface UserPermissionsResponse {
   effectivePermissions: string[];
 }
 
-export interface PendingRoleAssignmentItem {
-  _id: string;
-  email: string;
-  role: Role | { _id: string; name: string };
-  createdBy?: { _id: string; name: string; email: string } | string;
-  createdAt: string;
-}
-
 export interface Attendance {
   _id: string;
   userId: {

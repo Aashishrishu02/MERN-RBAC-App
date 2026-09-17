@@ -5,7 +5,6 @@ import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { User } from '../models/User';
 import { Role, IRole } from '../models/Role';
-import { PendingRoleAssignment } from '../models/PendingRoleAssignment';
 import { AuthRequest, getJwtSecret, getUserEffectivePermissions } from '../middleware/auth';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -18,7 +17,7 @@ const generateToken = (userId: string): string => {
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, email, password, roleId, inviteToken } = req.body;
+    const { name, email, password, roleId } = req.body;
 
     if (!name || !email || !password) {
       res.status(400).json({ message: 'Name, email, and password are required' });
@@ -32,32 +31,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    let pendingAssignment = null;
-    if (inviteToken && typeof inviteToken === 'string') {
-      const tokenHash = crypto.createHash('sha256').update(inviteToken.trim()).digest('hex');
-      pendingAssignment = await PendingRoleAssignment.findOne({
-        tokenHash,
-        usedAt: undefined,
-        expiresAt: { $gt: new Date() },
-      });
-
-      if (!pendingAssignment) {
-        res.status(400).json({ message: 'Invalid or expired invitation token' });
-        return;
-      }
-
-      if (pendingAssignment.email.toLowerCase() !== normalizedEmail) {
-        res.status(400).json({ message: 'Invitation email does not match registration email' });
-        return;
-      }
-    } else {
-      pendingAssignment = await PendingRoleAssignment.findOne({ email: normalizedEmail });
-    }
-
     let targetRoleId = roleId;
-    if (pendingAssignment) {
-      targetRoleId = pendingAssignment.role;
-    } else if (!targetRoleId) {
+    if (!targetRoleId) {
       const defaultRole = await Role.findOne({ isDefault: true });
       if (!defaultRole) {
         res.status(500).json({ message: 'Default role not found. Please run seed script.' });
@@ -75,10 +50,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       password: hashedPassword,
       role: targetRoleId,
     });
-
-    if (pendingAssignment) {
-      await PendingRoleAssignment.deleteOne({ _id: pendingAssignment._id });
-    }
 
     const populatedUser = await User.findById(newUser._id).populate<{ role: IRole }>('role');
     const roleDoc = populatedUser?.role as IRole;
@@ -194,30 +165,18 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
     let existingUser = await User.findOne({ email: verifiedEmail });
 
     if (!existingUser) {
-      const pendingAssignment = await PendingRoleAssignment.findOne({ email: verifiedEmail });
-
-      let targetRoleId;
-      if (pendingAssignment) {
-        targetRoleId = pendingAssignment.role;
-      } else {
-        const defaultRole = await Role.findOne({ isDefault: true });
-        if (!defaultRole) {
-          res.status(500).json({ message: 'Default role not found for Google login. Run seed script.' });
-          return;
-        }
-        targetRoleId = defaultRole._id;
+      const defaultRole = await Role.findOne({ isDefault: true });
+      if (!defaultRole) {
+        res.status(500).json({ message: 'Default role not found for Google login. Run seed script.' });
+        return;
       }
 
       existingUser = await User.create({
         name: verifiedName,
         email: verifiedEmail,
         googleId: verifiedGoogleId,
-        role: targetRoleId,
+        role: defaultRole._id,
       });
-
-      if (pendingAssignment) {
-        await PendingRoleAssignment.deleteOne({ _id: pendingAssignment._id });
-      }
     }
 
     const user = await User.findById(existingUser._id).populate<{ role: IRole }>('role');

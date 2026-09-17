@@ -4,11 +4,9 @@ import mongoose from 'mongoose';
 import { Request, Response } from 'express';
 import { User } from '../models/User';
 import { Role, Permission, IRole } from '../models/Role';
-import { PendingRoleAssignment } from '../models/PendingRoleAssignment';
 import { getUserEffectivePermissions, AuthRequest } from '../middleware/auth';
 import {
   sendRoleAssignmentEmail,
-  sendRoleInvitationEmail,
   sendRoleRemovalEmail,
   sendCredentialEmail,
 } from '../services/emailService';
@@ -86,9 +84,6 @@ export const updateUserRole = async (req: Request, res: Response): Promise<void>
     targetUser.role = targetRole._id as any;
     await targetUser.save();
 
-    // Clean up any stale pending role assignment for this user's email
-    await PendingRoleAssignment.deleteOne({ email: targetUser.email.toLowerCase() });
-
     const updatedUser = await User.findById(targetUser._id)
       .select('-password -resetPasswordToken -resetPasswordExpires')
       .populate<{ role: IRole }>('role');
@@ -156,8 +151,6 @@ export const resetUserRole = async (req: Request, res: Response): Promise<void> 
     targetUser.role = defaultRole._id as any;
     await targetUser.save();
 
-    await PendingRoleAssignment.deleteOne({ email: targetUser.email.toLowerCase() });
-
     const updatedUser = await User.findById(targetUser._id)
       .select('-password -resetPasswordToken -resetPasswordExpires')
       .populate<{ role: IRole }>('role');
@@ -216,9 +209,6 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
 
     // Delete user account permanently from MongoDB
     await User.findByIdAndDelete(id);
-
-    // Clean up any pending role assignment for this user's email if present
-    await PendingRoleAssignment.deleteOne({ email: targetUser.email.toLowerCase() });
 
     res.json({
       message: `User ${targetUser.name} (${targetUser.email}) permanently deleted.`,
@@ -331,271 +321,6 @@ export const updateUserPermissions = async (req: Request, res: Response): Promis
   }
 };
 
-export const createOrAssignRoleByEmail = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const { email, roleId } = req.body;
-
-    if (!email || typeof email !== 'string') {
-      res.status(400).json({ message: 'Email is required' });
-      return;
-    }
-
-    if (!roleId || typeof roleId !== 'string') {
-      res.status(400).json({ message: 'roleId is required' });
-      return;
-    }
-
-    const emailRegex = /^\S+@\S+\.\S+$/;
-    const normalizedEmail = email.trim().toLowerCase();
-
-    if (!emailRegex.test(normalizedEmail)) {
-      res.status(400).json({ message: 'Invalid email format' });
-      return;
-    }
-
-    const targetRole = await Role.findById(roleId);
-    if (!targetRole) {
-      res.status(400).json({ message: 'Target role not found' });
-      return;
-    }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email: normalizedEmail }).populate<{ role: IRole }>('role');
-
-    if (existingUser) {
-      // Safety Guard if demoting existing user
-      const currentEffective = getUserEffectivePermissions(existingUser);
-      const currentUserHasManageRoles = currentEffective.includes(Permission.MANAGE_ROLES);
-      const newRoleHasManageRoles = targetRole.permissions?.includes(Permission.MANAGE_ROLES);
-
-      if (currentUserHasManageRoles && !newRoleHasManageRoles) {
-        const allUsers = await User.find().populate<{ role: IRole }>('role');
-        const manageRolesCount = allUsers.filter((u) =>
-          getUserEffectivePermissions(u).includes(Permission.MANAGE_ROLES)
-        ).length;
-
-        if (manageRolesCount <= 1) {
-          res.status(400).json({
-            message:
-              'Safety Guard: Cannot demote the last remaining user with MANAGE_ROLES permission to prevent system lockout.',
-          });
-          return;
-        }
-      }
-
-      existingUser.customPermissions = undefined;
-      existingUser.role = targetRole._id as any;
-      await existingUser.save();
-
-      await PendingRoleAssignment.deleteOne({ email: normalizedEmail });
-
-      const updatedUser = await User.findById(existingUser._id)
-        .select('-password -resetPasswordToken -resetPasswordExpires')
-        .populate<{ role: IRole }>('role');
-
-      const updatedEffective = getUserEffectivePermissions(updatedUser!);
-      const emailResult = await sendRoleAssignmentEmail(existingUser.email, existingUser.name, targetRole.name);
-
-      res.json({
-        status: 'UPDATED',
-        message: emailResult.success
-          ? `User found. Role updated to ${targetRole.name} and notification email sent.`
-          : `User found. Role updated to ${targetRole.name}, but notification email could not be sent.`,
-        emailSent: emailResult.success,
-        user: {
-          _id: updatedUser!._id,
-          name: updatedUser!.name,
-          email: updatedUser!.email,
-          role: updatedUser!.role,
-          customPermissions: updatedUser!.customPermissions || null,
-          effectivePermissions: updatedEffective,
-        },
-      });
-      return;
-    }
-
-    // Unregistered user -> generate raw token, tokenHash, expiresAt
-    const rawToken = crypto.randomBytes(32).toString('hex');
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-
-    const creatorId = req.user?.id;
-    const assignment = await PendingRoleAssignment.findOneAndUpdate(
-      { email: normalizedEmail },
-      { role: targetRole._id, createdBy: creatorId, tokenHash, expiresAt, usedAt: undefined },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
-    )
-      .populate<{ role: IRole }>('role')
-      .populate<{ name: string; email: string }>('createdBy', 'name email');
-
-    const emailResult = await sendRoleInvitationEmail(normalizedEmail, targetRole.name, rawToken);
-
-    res.status(200).json({
-      status: 'PENDING',
-      message: emailResult.success
-        ? 'Role assigned and invitation email sent.'
-        : 'Role assignment saved, but email could not be sent.',
-      emailSent: emailResult.success,
-      assignment: {
-        _id: assignment._id,
-        email: assignment.email,
-        role: assignment.role,
-        createdBy: assignment.createdBy,
-        createdAt: assignment.createdAt,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({ message: (error as Error).message });
-  }
-};
-
-export const getPendingRoleAssignments = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { email } = req.query;
-    const filter: any = {};
-    if (email && typeof email === 'string') {
-      filter.email = email.trim().toLowerCase();
-    }
-
-    const assignments = await PendingRoleAssignment.find(filter)
-      .populate<{ role: IRole }>('role')
-      .populate<{ name: string; email: string }>('createdBy', 'name email')
-      .sort({ createdAt: -1 });
-
-    res.json({ assignments });
-  } catch (error) {
-    res.status(500).json({ message: (error as Error).message });
-  }
-};
-
-export const deletePendingRoleAssignment = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const assignment = await PendingRoleAssignment.findByIdAndDelete(id);
-
-    if (!assignment) {
-      res.status(404).json({ message: 'Pending role assignment not found' });
-      return;
-    }
-
-    res.json({ message: 'Pending role assignment removed successfully' });
-  } catch (error) {
-    res.status(500).json({ message: (error as Error).message });
-  }
-};
-
-export const verifyInvitationToken = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { token } = req.query;
-    if (!token || typeof token !== 'string') {
-      res.status(400).json({ valid: false, message: 'Invitation token is required' });
-      return;
-    }
-
-    const tokenHash = crypto.createHash('sha256').update(token.trim()).digest('hex');
-    const assignment = await PendingRoleAssignment.findOne({
-      tokenHash,
-      usedAt: undefined,
-      expiresAt: { $gt: new Date() },
-    }).populate<{ role: IRole }>('role');
-
-    if (!assignment) {
-      res.status(400).json({ valid: false, message: 'Invalid or expired invitation token' });
-      return;
-    }
-
-    const roleDoc = assignment.role as IRole;
-    res.json({
-      valid: true,
-      email: assignment.email,
-      roleName: roleDoc?.name || 'Assigned Role',
-    });
-  } catch (error) {
-    res.status(500).json({ valid: false, message: (error as Error).message });
-  }
-};
-
-export const provisionUser = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const { email, roleId, name } = req.body;
-
-    if (!email || typeof email !== 'string') {
-      res.status(400).json({ message: 'Email is required' });
-      return;
-    }
-
-    if (!roleId || typeof roleId !== 'string') {
-      res.status(400).json({ message: 'roleId is required' });
-      return;
-    }
-
-    const emailRegex = /^\S+@\S+\.\S+$/;
-    const normalizedEmail = email.trim().toLowerCase();
-
-    if (!emailRegex.test(normalizedEmail)) {
-      res.status(400).json({ message: 'Invalid email format' });
-      return;
-    }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email: normalizedEmail });
-    if (existingUser) {
-      res.status(400).json({
-        message: 'User already exists. Use Change Role / Manage Permissions.',
-      });
-      return;
-    }
-
-    const targetRole = await Role.findById(roleId);
-    if (!targetRole) {
-      res.status(400).json({ message: 'Target role not found' });
-      return;
-    }
-
-    // Generate secure temporary password
-    const tempPassword = crypto.randomBytes(8).toString('hex'); // 16 hex chars
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(tempPassword, salt);
-
-    const userName = name && typeof name === 'string' && name.trim()
-      ? name.trim()
-      : normalizedEmail.split('@')[0];
-
-    const newUser = await User.create({
-      name: userName,
-      email: normalizedEmail,
-      password: hashedPassword,
-      role: targetRole._id,
-      mustChangePassword: true,
-    });
-
-    // Clean up any stale pending role assignment for this email
-    await PendingRoleAssignment.deleteOne({ email: normalizedEmail });
-
-    const populatedUser = await User.findById(newUser._id)
-      .select('-password -resetPasswordToken -resetPasswordExpires')
-      .populate<{ role: IRole }>('role');
-
-    const emailResult = await sendCredentialEmail(normalizedEmail, tempPassword, targetRole.name);
-
-    res.status(201).json({
-      message: emailResult.success
-        ? `Account created and credentials sent to ${normalizedEmail}.`
-        : `Account created for ${normalizedEmail}, but credential email could not be sent.`,
-      emailSent: emailResult.success,
-      user: {
-        _id: populatedUser!._id,
-        name: populatedUser!.name,
-        email: populatedUser!.email,
-        role: populatedUser!.role,
-        mustChangePassword: true,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({ message: (error as Error).message });
-  }
-};
-
 export const generateSecurePassword = (length = 14): string => {
   const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
   const lower = 'abcdefghijkmnopqrstuvwxyz';
@@ -619,6 +344,104 @@ export const generateSecurePassword = (length = 14): string => {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr.join('');
+};
+
+export const provisionUser = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { email, roleId, name } = req.body;
+
+    if (!email || typeof email !== 'string' || !email.trim()) {
+      res.status(400).json({ message: 'Email address is required' });
+      return;
+    }
+
+    if (!roleId || typeof roleId !== 'string' || !roleId.trim()) {
+      res.status(400).json({ message: 'roleId is required' });
+      return;
+    }
+
+    const trimmedRoleId = roleId.trim();
+    if (!mongoose.Types.ObjectId.isValid(trimmedRoleId)) {
+      res.status(400).json({ message: 'Invalid role ID format' });
+      return;
+    }
+
+    const emailRegex = /^\S+@\S+\.\S+$/;
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!emailRegex.test(normalizedEmail)) {
+      res.status(400).json({ message: 'Invalid email address format' });
+      return;
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      res.status(400).json({
+        message: 'User already exists with this email address.',
+      });
+      return;
+    }
+
+    const targetRole = await Role.findById(trimmedRoleId);
+    if (!targetRole) {
+      res.status(400).json({ message: 'Target role not found' });
+      return;
+    }
+
+    // Generate cryptographically secure temporary password (14 chars)
+    const tempPassword = generateSecurePassword(14);
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(tempPassword, salt);
+
+    const userName = name && typeof name === 'string' && name.trim()
+      ? name.trim()
+      : normalizedEmail.split('@')[0];
+
+    const newUser = await User.create({
+      name: userName,
+      email: normalizedEmail,
+      password: hashedPassword,
+      role: targetRole._id,
+      mustChangePassword: false,
+    });
+
+    const populatedUser = await User.findById(newUser._id)
+      .select('-password -resetPasswordToken -resetPasswordExpires')
+      .populate<{ role: IRole }>('role');
+
+    // Send credentials via email
+    const emailResult = await sendCredentialEmail(normalizedEmail, tempPassword, targetRole.name);
+
+    if (process.env.NODE_ENV === 'production' && !emailResult.success) {
+      // In production, delete user if email delivery failed
+      await User.findByIdAndDelete(newUser._id);
+      res.status(500).json({
+        message: `Failed to transmit credential email to ${normalizedEmail}. ${emailResult.error || 'SMTP delivery failed.'}`,
+        emailSent: false,
+      });
+      return;
+    }
+
+    res.status(201).json({
+      message: emailResult.success
+        ? `Account created and login credentials sent to ${normalizedEmail}.`
+        : `Account created for ${normalizedEmail} (dev preview mode).`,
+      emailSent: emailResult.success,
+      loginId: normalizedEmail,
+      generatedPassword: tempPassword,
+      roleName: targetRole.name,
+      user: {
+        _id: populatedUser!._id,
+        name: populatedUser!.name,
+        email: populatedUser!.email,
+        role: populatedUser!.role,
+        mustChangePassword: false,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
 };
 
 export const generateCredentials = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -694,8 +517,6 @@ export const generateCredentials = async (req: AuthRequest, res: Response): Prom
       role: targetRole._id,
       mustChangePassword: false,
     });
-
-    await PendingRoleAssignment.deleteOne({ email: loginId });
 
     const populatedUser = await User.findById(newUser._id)
       .select('-password -resetPasswordToken -resetPasswordExpires')

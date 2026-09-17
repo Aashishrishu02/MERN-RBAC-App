@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import axios from 'axios';
-import { AuthResponse, Role, UserListItem, UserPermissionsResponse, PendingRoleAssignmentItem, Attendance, Visit } from '../types';
+import { AuthResponse, Role, UserListItem, UserPermissionsResponse, Attendance, Visit } from '../types';
 
 export const formatApiUrl = (rawUrl?: string): string => {
   if (!rawUrl || !rawUrl.trim()) {
@@ -124,37 +124,15 @@ export const userService = {
     const res = await api.put(`/users/${userId}/permissions`, { permissions });
     return res.data;
   },
-  assignRoleByEmail: async (
-    email: string,
-    roleId: string
-  ): Promise<{
-    status: 'UPDATED' | 'PENDING';
-    message: string;
-    emailSent?: boolean;
-    user?: UserListItem;
-    assignment?: PendingRoleAssignmentItem;
-  }> => {
-    const res = await api.post('/users/role-assignment', { email, roleId });
-    return res.data;
-  },
-  getPendingRoleAssignments: async (): Promise<{ assignments: PendingRoleAssignmentItem[] }> => {
-    const res = await api.get('/users/role-assignment');
-    return res.data;
-  },
-  deletePendingRoleAssignment: async (id: string): Promise<{ message: string }> => {
-    const res = await api.delete(`/users/role-assignment/${id}`);
-    return res.data;
-  },
-  verifyInviteToken: async (token: string): Promise<{ valid: boolean; email?: string; roleName?: string; message?: string }> => {
-    const res = await api.get('/users/invite/verify', { params: { token } });
-    return res.data;
-  },
   provisionUser: async (
     email: string,
     roleId: string
   ): Promise<{
     message: string;
     emailSent?: boolean;
+    loginId?: string;
+    generatedPassword?: string;
+    roleName?: string;
     user?: UserListItem;
   }> => {
     const res = await api.post('/users/provision', { email, roleId });

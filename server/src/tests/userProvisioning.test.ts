@@ -320,4 +320,40 @@ describe('Admin Direct Credential Generation & Provisioning Flow Tests', () => {
     expect(res.status).toBe(400);
     expect(res.body.message).toBe('Target role not found');
   });
+
+  it('18. Primary Admin can provision a user via POST /api/users/provision and provisioned user can log in', async () => {
+    const provisionEmail = 'provisioned_member@organization.com';
+    const res = await request(app)
+      .post('/api/users/provision')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        email: provisionEmail,
+        roleId: managerRoleId,
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.loginId).toBe(provisionEmail);
+    expect(res.body.generatedPassword).toBeDefined();
+
+    // Verify provisioned user can log in
+    const loginRes = await request(app).post('/api/auth/login').send({
+      email: provisionEmail,
+      password: res.body.generatedPassword,
+    });
+    expect(loginRes.status).toBe(200);
+    expect(loginRes.body.user.email).toBe(provisionEmail);
+  });
+
+  it('19. POST /api/users/provision - Unauthorized user without MANAGE_USER_ACCOUNTS gets 403', async () => {
+    const res = await request(app)
+      .post('/api/users/provision')
+      .set('Authorization', `Bearer ${employeeToken}`)
+      .send({
+        email: 'unauth_provision@test.com',
+        roleId: managerRoleId,
+      });
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toContain('MANAGE_USER_ACCOUNTS');
+  });
 });

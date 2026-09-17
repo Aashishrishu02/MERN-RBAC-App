@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Mail, Lock, User, UserPlus, CheckCircle } from 'lucide-react';
-import { authService, userService } from '../services/api';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Mail, Lock, User, UserPlus } from 'lucide-react';
+import { authService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { AuthLayout } from '../components/AuthLayout';
 
@@ -11,29 +11,9 @@ export const Register: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [inviteBanner, setInviteBanner] = useState('');
-  
-  const [searchParams] = useSearchParams();
-  const inviteToken = searchParams.get('invite');
 
   const { login } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (inviteToken) {
-      userService
-        .verifyInviteToken(inviteToken)
-        .then((res) => {
-          if (res.valid) {
-            if (res.email) setEmail(res.email);
-            setInviteBanner(`You are registering with a pre-assigned role (${res.roleName || 'Assigned Role'}).`);
-          }
-        })
-        .catch(() => {
-          // Silent fallback
-        });
-    }
-  }, [inviteToken]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +21,7 @@ export const Register: React.FC = () => {
     setLoading(true);
 
     try {
-      const data = await authService.register(name, email, password, undefined, inviteToken || undefined);
+      const data = await authService.register(name, email, password);
       login(data.token, data.user);
       navigate('/dashboard');
     } catch (err: any) {
@@ -64,13 +44,6 @@ export const Register: React.FC = () => {
           </Link>
         </p>
       </div>
-
-      {inviteBanner && (
-        <div className="alert alert-success" style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
-          <CheckCircle size={16} color="#16a34a" />
-          <span>{inviteBanner}</span>
-        </div>
-      )}
 
       {error && (
         <div className="alert alert-danger" style={{ marginBottom: '1.25rem' }}>
