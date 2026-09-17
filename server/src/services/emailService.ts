@@ -8,7 +8,7 @@ export interface SendEmailResult {
 
 export const getTransporter = () => {
   const host = process.env.SMTP_HOST;
-  const port = parseInt(process.env.SMTP_PORT || '587', 10);
+  const port = parseInt(process.env.SMTP_PORT || '465', 10);
   const secureEnv = process.env.SMTP_SECURE;
   const secure = secureEnv === 'true' || (secureEnv !== 'false' && port === 465);
   const user = process.env.SMTP_USER;
@@ -31,11 +31,11 @@ export const getTransporter = () => {
 
 export const verifySmtpConfig = async (): Promise<{ success: boolean; error?: string }> => {
   const host = process.env.SMTP_HOST;
-  const port = parseInt(process.env.SMTP_PORT || '587', 10);
+  const port = parseInt(process.env.SMTP_PORT || '465', 10);
   const secureEnv = process.env.SMTP_SECURE;
   const secure = secureEnv === 'true' || (secureEnv !== 'false' && port === 465);
   const user = process.env.SMTP_USER;
-  const fromAddress = process.env.SMTP_FROM || process.env.EMAIL_FROM || user || 'noreply@fieldops.com';
+  const fromAddress = process.env.SMTP_FROM || process.env.EMAIL_FROM || 'onboarding@resend.dev';
 
   if (!host || !user || !process.env.SMTP_PASS) {
     const msg = `SMTP Configuration Incomplete: Host=${host || 'undefined'}, Port=${port}, Secure=${secure}, User=${user || 'undefined'}, From=${fromAddress}`;
@@ -73,11 +73,11 @@ export const sendEmail = async (options: {
   try {
     const transporter = getTransporter();
     const host = process.env.SMTP_HOST || 'unconfigured';
-    const port = parseInt(process.env.SMTP_PORT || '587', 10);
+    const port = parseInt(process.env.SMTP_PORT || '465', 10);
     const secureEnv = process.env.SMTP_SECURE;
     const secure = secureEnv === 'true' || (secureEnv !== 'false' && port === 465);
     const user = process.env.SMTP_USER;
-    const fromAddress = process.env.SMTP_FROM || process.env.EMAIL_FROM || user || 'noreply@fieldops.com';
+    const fromAddress = process.env.SMTP_FROM || process.env.EMAIL_FROM || 'onboarding@resend.dev';
 
     if (!transporter) {
       if (process.env.NODE_ENV === 'production') {
