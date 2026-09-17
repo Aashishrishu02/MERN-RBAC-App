@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import mongoose from 'mongoose';
 import { Request, Response } from 'express';
 import { User } from '../models/User';
 import { Role, Permission, IRole } from '../models/Role';
@@ -624,12 +625,18 @@ export const generateCredentials = async (req: AuthRequest, res: Response): Prom
   try {
     const { roleId, customEmail } = req.body;
 
-    if (!roleId || typeof roleId !== 'string') {
+    if (!roleId || typeof roleId !== 'string' || !roleId.trim()) {
       res.status(400).json({ message: 'roleId is required' });
       return;
     }
 
-    const targetRole = await Role.findById(roleId);
+    const trimmedRoleId = roleId.trim();
+    if (!mongoose.Types.ObjectId.isValid(trimmedRoleId)) {
+      res.status(400).json({ message: 'Invalid role ID format' });
+      return;
+    }
+
+    const targetRole = await Role.findById(trimmedRoleId);
     if (!targetRole) {
       res.status(400).json({ message: 'Target role not found' });
       return;
@@ -652,8 +659,9 @@ export const generateCredentials = async (req: AuthRequest, res: Response): Prom
       }
       loginId = normalized;
     } else {
-      const companyDomain = process.env.COMPANY_DOMAIN || 'fieldops.com';
-      const roleSlug = targetRole.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const rawDomain = process.env.COMPANY_DOMAIN || 'fieldops.com';
+      const companyDomain = rawDomain.replace(/^@/, '').trim().toLowerCase() || 'fieldops.com';
+      const roleSlug = (targetRole.name || 'user').toLowerCase().replace(/[^a-z0-9]/g, '') || 'user';
       let isUnique = false;
       let attempts = 0;
 

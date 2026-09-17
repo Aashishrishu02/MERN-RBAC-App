@@ -160,6 +160,7 @@ describe('Admin Direct Credential Generation & Provisioning Flow Tests', () => {
   it('5. Generated password is cryptographically random (12+ characters)', async () => {
     expect(generatedOwnerPassword.length).toBeGreaterThanOrEqual(12);
     expect(generatedManagerPassword.length).toBeGreaterThanOrEqual(12);
+    expect(generatedEmployeePassword.length).toBeGreaterThanOrEqual(12);
     expect(generatedOwnerPassword).not.toBe(generatedManagerPassword);
   });
 
@@ -272,5 +273,26 @@ describe('Admin Direct Credential Generation & Provisioning Flow Tests', () => {
     expect(forgotRes.status).toBe(200);
     expect(forgotRes.body.resetToken).toBeDefined();
     expect(forgotRes.body.resetUrl).toBeDefined();
+  });
+
+  it('16. Invalid role ID format returns HTTP 400 Bad Request', async () => {
+    const res = await request(app)
+      .post('/api/users/generate-credentials')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ roleId: 'not-a-valid-object-id' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Invalid role ID format');
+  });
+
+  it('17. Non-existent role ID returns HTTP 400 Bad Request', async () => {
+    const fakeRoleId = new mongoose.Types.ObjectId().toString();
+    const res = await request(app)
+      .post('/api/users/generate-credentials')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ roleId: fakeRoleId });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Target role not found');
   });
 });

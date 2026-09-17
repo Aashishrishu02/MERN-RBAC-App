@@ -60,6 +60,22 @@ export const RoleManagementPage: React.FC = () => {
   const [modalError, setModalError] = useState('');
   const [modalSuccess, setModalSuccess] = useState('');
 
+  const extractErrorMessage = (err: any, fallback: string): string => {
+    if (err?.response?.data?.message && typeof err.response.data.message === 'string') {
+      return err.response.data.message;
+    }
+    if (err?.response?.data?.error && typeof err.response.data.error === 'string') {
+      return err.response.data.error;
+    }
+    if (typeof err?.response?.data === 'string' && err.response.data.trim()) {
+      return err.response.data;
+    }
+    if (err?.message && typeof err.message === 'string') {
+      return err.message;
+    }
+    return fallback;
+  };
+
   const fetchRolesData = async () => {
     try {
       const data = await roleService.getRoles();
@@ -316,7 +332,7 @@ export const RoleManagementPage: React.FC = () => {
       setGenCustomEmail('');
       await fetchUsersData();
     } catch (err: any) {
-      setGenError(err.response?.data?.message || 'Failed to generate credentials.');
+      setGenError(extractErrorMessage(err, 'Failed to generate credentials.'));
     } finally {
       setGenerating(false);
     }
@@ -344,7 +360,7 @@ export const RoleManagementPage: React.FC = () => {
       setProvisionEmail('');
       await fetchUsersData();
     } catch (err: any) {
-      setProvisionError(err.response?.data?.message || 'Failed to provision user.');
+      setProvisionError(extractErrorMessage(err, 'Failed to provision user.'));
     } finally {
       setProvisioning(false);
     }
