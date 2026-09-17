@@ -160,6 +160,19 @@ export const userService = {
     const res = await api.post('/users/provision', { email, roleId });
     return res.data;
   },
+  generateCredentials: async (
+    roleId: string,
+    customEmail?: string
+  ): Promise<{
+    message: string;
+    loginId: string;
+    generatedPassword: string;
+    roleName: string;
+    user?: UserListItem;
+  }> => {
+    const res = await api.post('/users/generate-credentials', { roleId, customEmail });
+    return res.data;
+  },
 };
 
 export const attendanceService = {

@@ -595,5 +595,122 @@ export const provisionUser = async (req: AuthRequest, res: Response): Promise<vo
   }
 };
 
+export const generateSecurePassword = (length = 14): string => {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghijkmnopqrstuvwxyz';
+  const digits = '23456789';
+  const symbols = '@#$%&*!';
+  const allChars = upper + lower + digits + symbols;
+
+  let password = '';
+  password += upper[crypto.randomInt(0, upper.length)];
+  password += lower[crypto.randomInt(0, lower.length)];
+  password += digits[crypto.randomInt(0, digits.length)];
+  password += symbols[crypto.randomInt(0, symbols.length)];
+
+  for (let i = password.length; i < length; i++) {
+    password += allChars[crypto.randomInt(0, allChars.length)];
+  }
+
+  const arr = password.split('');
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = crypto.randomInt(0, i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.join('');
+};
+
+export const generateCredentials = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { roleId, customEmail } = req.body;
+
+    if (!roleId || typeof roleId !== 'string') {
+      res.status(400).json({ message: 'roleId is required' });
+      return;
+    }
+
+    const targetRole = await Role.findById(roleId);
+    if (!targetRole) {
+      res.status(400).json({ message: 'Target role not found' });
+      return;
+    }
+
+    let loginId = '';
+
+    if (customEmail && typeof customEmail === 'string' && customEmail.trim()) {
+      const normalized = customEmail.trim().toLowerCase();
+      const emailRegex = /^\S+@\S+\.\S+$/;
+      if (!emailRegex.test(normalized)) {
+        res.status(400).json({ message: 'Invalid custom email format' });
+        return;
+      }
+
+      const existingUser = await User.findOne({ email: normalized });
+      if (existingUser) {
+        res.status(400).json({ message: 'User with this login ID already exists' });
+        return;
+      }
+      loginId = normalized;
+    } else {
+      const companyDomain = process.env.COMPANY_DOMAIN || 'fieldops.com';
+      const roleSlug = targetRole.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      let isUnique = false;
+      let attempts = 0;
+
+      while (!isUnique && attempts < 10) {
+        attempts++;
+        const hex = crypto.randomBytes(2).toString('hex').toUpperCase();
+        loginId = `${roleSlug}-${hex}@${companyDomain}`.toLowerCase();
+        const existing = await User.findOne({ email: loginId });
+        if (!existing) {
+          isUnique = true;
+        }
+      }
+
+      if (!isUnique) {
+        res.status(500).json({ message: 'Failed to generate a unique login ID. Please try again.' });
+        return;
+      }
+    }
+
+    const generatedPassword = generateSecurePassword(14);
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(generatedPassword, salt);
+
+    const userName = `${targetRole.name} User (${loginId.split('@')[0]})`;
+
+    const newUser = await User.create({
+      name: userName,
+      email: loginId,
+      password: hashedPassword,
+      role: targetRole._id,
+      mustChangePassword: false,
+    });
+
+    await PendingRoleAssignment.deleteOne({ email: loginId });
+
+    const populatedUser = await User.findById(newUser._id)
+      .select('-password -resetPasswordToken -resetPasswordExpires')
+      .populate<{ role: IRole }>('role');
+
+    res.status(201).json({
+      message: 'User credentials generated successfully.',
+      loginId,
+      generatedPassword,
+      roleName: targetRole.name,
+      user: {
+        _id: populatedUser!._id,
+        name: populatedUser!.name,
+        email: populatedUser!.email,
+        role: populatedUser!.role,
+        mustChangePassword: false,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+};
+
+
 
 

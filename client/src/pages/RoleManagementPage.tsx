@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ShieldAlert, Save, Info, Users, UserCheck, KeyRound, X, RotateCcw, UserPlus, Trash2, Mail } from 'lucide-react';
+import { ShieldAlert, Save, Info, Users, UserCheck, KeyRound, X, RotateCcw, UserPlus, Trash2, Mail, Sparkles, Copy, Check, Key } from 'lucide-react';
 import { roleService, userService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Navbar } from '../components/Navbar';
@@ -19,6 +19,18 @@ export const RoleManagementPage: React.FC = () => {
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Generate Credentials State
+  const [genRoleId, setGenRoleId] = useState('');
+  const [genCustomEmail, setGenCustomEmail] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState('');
+  const [generatedResult, setGeneratedResult] = useState<{
+    loginId: string;
+    generatedPassword: string;
+    roleName: string;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // Provision New User state
   const [provisionEmail, setProvisionEmail] = useState('');
@@ -55,6 +67,7 @@ export const RoleManagementPage: React.FC = () => {
       if (data.roles.length > 0) {
         if (!assignRoleId) setAssignRoleId(data.roles[0]._id);
         if (!provisionRoleId) setProvisionRoleId(data.roles[0]._id);
+        if (!genRoleId) setGenRoleId(data.roles[0]._id);
       }
       setAvailablePermissions(data.availablePermissions);
 
@@ -284,6 +297,39 @@ export const RoleManagementPage: React.FC = () => {
     }
   };
 
+  const handleGenerateCredentials = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!genRoleId) return;
+
+    setGenerating(true);
+    setGenError('');
+    setGeneratedResult(null);
+    setCopied(false);
+
+    try {
+      const res = await userService.generateCredentials(genRoleId, genCustomEmail);
+      setGeneratedResult({
+        loginId: res.loginId,
+        generatedPassword: res.generatedPassword,
+        roleName: res.roleName,
+      });
+      setGenCustomEmail('');
+      await fetchUsersData();
+    } catch (err: any) {
+      setGenError(err.response?.data?.message || 'Failed to generate credentials.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleCopyCredentials = () => {
+    if (!generatedResult) return;
+    const textToCopy = `FieldOps Account Credentials\nLogin ID: ${generatedResult.loginId}\nPassword: ${generatedResult.generatedPassword}\nRole: ${generatedResult.roleName}`;
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
   const handleProvisionUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!provisionEmail.trim() || !provisionRoleId) return;
@@ -341,7 +387,123 @@ export const RoleManagementPage: React.FC = () => {
             </div>
           )}
 
-          {/* Section 0A: Provision New User */}
+          {/* Section 0: Generate Credentials / Create User */}
+          <div className="saas-card" style={{ padding: '1.5rem', marginBottom: '2rem', borderLeft: '4px solid #0f172a' }}>
+            <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Key size={20} color="#0f172a" />
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                Create New User (Generate Credentials)
+              </h3>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.1rem', marginBottom: '1.25rem' }}>
+              Instantly provision an account and generate secure login credentials for a new team member. No SMTP or recipient pre-registration required.
+            </p>
+
+            {genError && <div className="alert alert-danger" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>{genError}</div>}
+
+            <form onSubmit={handleGenerateCredentials} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: generatedResult ? '1.5rem' : '0' }}>
+              <div style={{ width: '220px' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                  Select Role
+                </label>
+                <select
+                  className="form-input"
+                  style={{ fontSize: '0.85rem' }}
+                  value={genRoleId}
+                  onChange={(e) => setGenRoleId(e.target.value)}
+                >
+                  {roles.map((r) => (
+                    <option key={r._id} value={r._id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ flex: 1, minWidth: '240px' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                  Custom Login Email ID <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(Optional - Auto-generates company ID if blank)</span>
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={16} color="#64748b" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type="email"
+                    className="form-input"
+                    style={{ paddingLeft: '2.4rem', fontSize: '0.85rem' }}
+                    placeholder="e.g. Leave blank for auto-generated ID (owner-8F42@fieldops.com)"
+                    value={genCustomEmail}
+                    onChange={(e) => setGenCustomEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{ padding: '0.55rem 1.15rem', fontSize: '0.825rem', height: '38px', background: '#0f172a', borderColor: '#0f172a' }}
+                disabled={generating || !genRoleId}
+              >
+                <Sparkles size={15} />
+                <span>{generating ? 'Generating...' : 'Generate Credentials'}</span>
+              </button>
+            </form>
+
+            {/* Account Created Successfully Card */}
+            {generatedResult && (
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '1.25rem', marginTop: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#15803d', fontWeight: 700, fontSize: '0.95rem' }}>
+                    <Sparkles size={18} color="#15803d" />
+                    Account Created Successfully
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyCredentials}
+                    className="btn"
+                    style={{
+                      background: copied ? '#15803d' : '#ffffff',
+                      color: copied ? '#ffffff' : '#0f172a',
+                      border: '1px solid #cbd5e1',
+                      padding: '0.4rem 0.85rem',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                    <span>{copied ? 'Copied to Clipboard!' : 'Copy Credentials'}</span>
+                  </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', background: '#ffffff', padding: '1rem', borderRadius: '6px', border: '1px solid #dcfce7', marginBottom: '0.85rem' }}>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Login ID</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a', fontFamily: 'monospace', marginTop: '0.2rem' }}>
+                      {generatedResult.loginId}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Temporary/Generated Password</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#4f46e5', fontFamily: 'monospace', marginTop: '0.2rem', background: '#e0e7ff', padding: '0.2rem 0.5rem', borderRadius: '4px', display: 'inline-block' }}>
+                      {generatedResult.generatedPassword}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Assigned Role</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#15803d', marginTop: '0.2rem' }}>
+                      {generatedResult.roleName}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '0.78rem', color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.5rem 0.75rem', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <ShieldAlert size={15} color="#b45309" />
+                  <strong>Security Warning:</strong> Save these credentials securely. The password will not be displayed again.
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section 0A: Provision New User (Email Credential Delivery) */}
           <div className="saas-card" style={{ padding: '1.5rem', marginBottom: '2rem', borderLeft: '4px solid #4f46e5' }}>
             <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <UserPlus size={20} color="#4f46e5" />
