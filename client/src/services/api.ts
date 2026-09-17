@@ -79,6 +79,10 @@ export const authService = {
     const res = await api.get('/auth/me');
     return res.data;
   },
+  changeTemporaryPassword: async (currentPassword: string, newPassword: string): Promise<AuthResponse> => {
+    const res = await api.post('/auth/change-temporary-password', { currentPassword, newPassword });
+    return res.data;
+  },
 };
 
 export const roleService = {
@@ -143,6 +147,17 @@ export const userService = {
   },
   verifyInviteToken: async (token: string): Promise<{ valid: boolean; email?: string; roleName?: string; message?: string }> => {
     const res = await api.get('/users/invite/verify', { params: { token } });
+    return res.data;
+  },
+  provisionUser: async (
+    email: string,
+    roleId: string
+  ): Promise<{
+    message: string;
+    emailSent?: boolean;
+    user?: UserListItem;
+  }> => {
+    const res = await api.post('/users/provision', { email, roleId });
     return res.data;
   },
 };

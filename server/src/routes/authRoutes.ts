@@ -6,6 +6,7 @@ import {
   forgotPassword,
   resetPassword,
   getMe,
+  changeTemporaryPassword,
 } from '../controllers/authController';
 import { authenticateToken } from '../middleware/auth';
 
@@ -17,5 +18,6 @@ router.post('/google', googleLogin);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 router.get('/me', authenticateToken, getMe);
+router.post('/change-temporary-password', authenticateToken, changeTemporaryPassword);
 
 export default router;

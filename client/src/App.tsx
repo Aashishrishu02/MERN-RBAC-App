@@ -7,6 +7,7 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
+import { ChangeTemporaryPassword } from './pages/ChangeTemporaryPassword';
 import { Dashboard } from './pages/Dashboard';
 import { AttendancePage } from './pages/AttendancePage';
 import { VisitsPage } from './pages/VisitsPage';
@@ -37,8 +38,10 @@ export const App: React.FC = () => {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-          {/* Protected Routes inside App Layout */}
+          {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
+            <Route path="/change-temporary-password" element={<ChangeTemporaryPassword />} />
+
             <Route element={<MainLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               

@@ -1,10 +1,13 @@
 import request from 'supertest';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
+import crypto from 'crypto';
+import nodemailer from 'nodemailer';
 import app from '../index';
 import { Role, Permission } from '../models/Role';
 import { User } from '../models/User';
 import { PendingRoleAssignment } from '../models/PendingRoleAssignment';
+import { sendRoleAssignmentEmail } from '../services/emailService';
 import bcrypt from 'bcryptjs';
 
 let mongoServer: MongoMemoryServer;
@@ -573,7 +576,7 @@ describe('User Role Assignment API Tests', () => {
     it('27. GET /api/users/invite/verify - Verifies valid invitation token', async () => {
       // Create pending role assignment manually with known token
       const rawToken = 'test_raw_invitation_token_12345';
-      const tokenHash = require('crypto').createHash('sha256').update(rawToken).digest('hex');
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
       await PendingRoleAssignment.create({
         email: 'token_verify_test@test.com',
@@ -616,7 +619,6 @@ describe('User Role Assignment API Tests', () => {
     });
 
     it('31. Nodemailer Transporter - Mocked transporter successfully captures email dispatch and messageId', async () => {
-      const nodemailer = require('nodemailer');
       const sendMailMock = jest.fn().mockResolvedValue({ messageId: '<mock-msg-id-12345@fieldops.com>' });
       const spy = jest.spyOn(nodemailer, 'createTransport').mockReturnValue({
         sendMail: sendMailMock,
@@ -647,7 +649,6 @@ describe('User Role Assignment API Tests', () => {
     });
 
     it('32. SMTP Failure Handling - Reports emailSent: false when transporter fails', async () => {
-      const nodemailer = require('nodemailer');
       const sendMailMock = jest.fn().mockRejectedValue(new Error('Connection refused to SMTP server'));
       const spy = jest.spyOn(nodemailer, 'createTransport').mockReturnValue({
         sendMail: sendMailMock,
@@ -682,7 +683,6 @@ describe('User Role Assignment API Tests', () => {
       delete process.env.SMTP_USER;
       delete process.env.SMTP_PASS;
 
-      const { sendRoleAssignmentEmail } = require('../services/emailService');
       const result = await sendRoleAssignmentEmail('prod_test@test.com', 'Prod User', 'Manager');
 
       expect(result.success).toBe(false);

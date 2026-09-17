@@ -231,3 +231,55 @@ FieldOps Team`;
 
   return sendEmail({ to: email, subject, text, html });
 };
+
+export const sendCredentialEmail = async (
+  email: string,
+  tempPassword: string,
+  roleName: string
+): Promise<SendEmailResult> => {
+  const frontendUrl =
+    process.env.FRONTEND_URL ||
+    process.env.CLIENT_URL ||
+    'https://mern-rbac-app-sand.vercel.app';
+  const loginUrl = `${frontendUrl.replace(/\/+$/, '')}/login`;
+  const subject = 'Your FieldOps account has been created';
+
+  const text = `Welcome to FieldOps!
+
+Your FieldOps account has been created by an administrator.
+
+Login Details:
+- Login Email: ${email}
+- Temporary Password: ${tempPassword}
+- Assigned Role: ${roleName}
+- Login URL: ${loginUrl}
+
+You must change your temporary password after first login.
+
+Regards,
+FieldOps Team`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+      <h2 style="color: #0f172a;">Welcome to FieldOps!</h2>
+      <p>Your FieldOps account has been created by an administrator.</p>
+      <div style="background: #f1f5f9; padding: 16px; border-radius: 6px; margin: 15px 0;">
+        <p style="margin: 4px 0;"><strong>Login Email:</strong> ${email}</p>
+        <p style="margin: 4px 0;"><strong>Temporary Password:</strong> <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">${tempPassword}</code></p>
+        <p style="margin: 4px 0;"><strong>Assigned Role:</strong> <span style="color: #4f46e5; font-weight: bold;">${roleName}</span></p>
+        <p style="margin: 4px 0;"><strong>Login URL:</strong> <a href="${loginUrl}">${loginUrl}</a></p>
+      </div>
+      <p style="color: #dc2626; font-weight: bold;">You must change your temporary password after first login.</p>
+      <div style="margin: 20px 0;">
+        <a href="${loginUrl}" style="background: #0f172a; color: #ffffff; padding: 12px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">
+          Log In Now
+        </a>
+      </div>
+      <br/>
+      <p>Regards,<br/><strong>FieldOps Team</strong></p>
+    </div>
+  `;
+
+  return sendEmail({ to: email, subject, text, html });
+};
+

@@ -12,6 +12,7 @@ let managerToken: string;
 let employeeToken: string;
 
 let ownerRoleId: string;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let managerRoleId: string;
 
 beforeAll(async () => {

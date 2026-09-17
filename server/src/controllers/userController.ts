@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
 import { User } from '../models/User';
 import { Role, Permission, IRole } from '../models/Role';
@@ -8,6 +9,7 @@ import {
   sendRoleAssignmentEmail,
   sendRoleInvitationEmail,
   sendRoleRemovalEmail,
+  sendCredentialEmail,
 } from '../services/emailService';
 
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
@@ -511,5 +513,87 @@ export const verifyInvitationToken = async (req: Request, res: Response): Promis
     res.status(500).json({ valid: false, message: (error as Error).message });
   }
 };
+
+export const provisionUser = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { email, roleId, name } = req.body;
+
+    if (!email || typeof email !== 'string') {
+      res.status(400).json({ message: 'Email is required' });
+      return;
+    }
+
+    if (!roleId || typeof roleId !== 'string') {
+      res.status(400).json({ message: 'roleId is required' });
+      return;
+    }
+
+    const emailRegex = /^\S+@\S+\.\S+$/;
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!emailRegex.test(normalizedEmail)) {
+      res.status(400).json({ message: 'Invalid email format' });
+      return;
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      res.status(400).json({
+        message: 'User already exists. Use Change Role / Manage Permissions.',
+      });
+      return;
+    }
+
+    const targetRole = await Role.findById(roleId);
+    if (!targetRole) {
+      res.status(400).json({ message: 'Target role not found' });
+      return;
+    }
+
+    // Generate secure temporary password
+    const tempPassword = crypto.randomBytes(8).toString('hex'); // 16 hex chars
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(tempPassword, salt);
+
+    const userName = name && typeof name === 'string' && name.trim()
+      ? name.trim()
+      : normalizedEmail.split('@')[0];
+
+    const newUser = await User.create({
+      name: userName,
+      email: normalizedEmail,
+      password: hashedPassword,
+      role: targetRole._id,
+      mustChangePassword: true,
+    });
+
+    // Clean up any stale pending role assignment for this email
+    await PendingRoleAssignment.deleteOne({ email: normalizedEmail });
+
+    const populatedUser = await User.findById(newUser._id)
+      .select('-password -resetPasswordToken -resetPasswordExpires')
+      .populate<{ role: IRole }>('role');
+
+    const emailResult = await sendCredentialEmail(normalizedEmail, tempPassword, targetRole.name);
+
+    res.status(201).json({
+      message: emailResult.success
+        ? `Account created and credentials sent to ${normalizedEmail}.`
+        : `Account created for ${normalizedEmail}, but credential email could not be sent.`,
+      emailSent: emailResult.success,
+      user: {
+        _id: populatedUser!._id,
+        name: populatedUser!.name,
+        email: populatedUser!.email,
+        role: populatedUser!.role,
+        mustChangePassword: true,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+};
+
 
 

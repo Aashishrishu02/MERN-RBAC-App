@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 interface ProtectedRouteProps {
@@ -8,6 +8,7 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permission }) => {
   const { user, token, isLoading, hasPermission } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -22,6 +23,19 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permission }) =>
 
   if (!token || !user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Mandatory password change check for provisioned accounts
+  const isChangePasswordRoute = location.pathname === '/change-temporary-password';
+  if (user.mustChangePassword) {
+    if (!isChangePasswordRoute) {
+      return <Navigate to="/change-temporary-password" replace />;
+    }
+    return <Outlet />;
+  }
+
+  if (isChangePasswordRoute) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   if (permission) {

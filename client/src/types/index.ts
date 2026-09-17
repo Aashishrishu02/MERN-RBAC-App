@@ -24,6 +24,7 @@ export interface User {
     name: string;
   };
   permissions: string[];
+  mustChangePassword?: boolean;
 }
 
 export interface UserListItem {

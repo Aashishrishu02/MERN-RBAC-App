@@ -6,7 +6,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { User } from '../models/User';
 import { Role, IRole } from '../models/Role';
 import { PendingRoleAssignment } from '../models/PendingRoleAssignment';
-import { AuthRequest, getJwtSecret } from '../middleware/auth';
+import { AuthRequest, getJwtSecret, getUserEffectivePermissions } from '../middleware/auth';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -95,6 +95,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
           name: roleDoc.name,
         },
         permissions: roleDoc.permissions || [],
+        mustChangePassword: newUser.mustChangePassword || false,
       },
     });
   } catch (error) {
@@ -137,6 +138,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           name: roleDoc.name,
         },
         permissions: roleDoc.permissions || [],
+        mustChangePassword: user.mustChangePassword || false,
       },
     });
   } catch (error) {
@@ -238,6 +240,7 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
           name: roleDoc.name,
         },
         permissions: roleDoc.permissions || [],
+        mustChangePassword: user.mustChangePassword || false,
       },
     });
   } catch (error) {
@@ -325,3 +328,65 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
     res.status(500).json({ message: (error as Error).message });
   }
 };
+
+export const changeTemporaryPassword = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: 'Unauthorized: Authentication required' });
+      return;
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ message: 'Current password and new password are required' });
+      return;
+    }
+
+    const user = await User.findById(req.user.id).populate<{ role: IRole }>('role');
+    if (!user || !user.password) {
+      res.status(404).json({ message: 'User account not found' });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      res.status(400).json({ message: 'Current password is incorrect' });
+      return;
+    }
+
+    if (typeof newPassword !== 'string' || newPassword.length < 6) {
+      res.status(400).json({ message: 'New password must be at least 6 characters long' });
+      return;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    user.mustChangePassword = false;
+
+    await user.save();
+
+    const roleDoc = user.role as IRole;
+    const token = generateToken((user._id as any).toString());
+    const effectivePermissions = getUserEffectivePermissions(user);
+
+    res.json({
+      message: 'Password changed successfully. Your account is now fully active.',
+      token,
+      user: {
+        id: (user._id as any).toString(),
+        name: user.name,
+        email: user.email,
+        role: {
+          id: (roleDoc._id as any).toString(),
+          name: roleDoc.name,
+        },
+        permissions: effectivePermissions,
+        mustChangePassword: false,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+};
+

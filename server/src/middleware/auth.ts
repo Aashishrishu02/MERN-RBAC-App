@@ -18,6 +18,7 @@ export interface AuthRequest<
       name: string;
     };
     permissions: string[];
+    mustChangePassword?: boolean;
   };
 }
 
@@ -76,6 +77,7 @@ export const authenticateToken = async (
         name: roleDoc.name,
       },
       permissions: effectivePermissions,
+      mustChangePassword: user.mustChangePassword || false,
     };
 
     next();

@@ -20,6 +20,13 @@ export const RoleManagementPage: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Provision New User state
+  const [provisionEmail, setProvisionEmail] = useState('');
+  const [provisionRoleId, setProvisionRoleId] = useState('');
+  const [provisioning, setProvisioning] = useState(false);
+  const [provisionError, setProvisionError] = useState('');
+  const [provisionSuccess, setProvisionSuccess] = useState('');
+
   // Assign Role by Email state
   const [assignEmail, setAssignEmail] = useState('');
   const [assignRoleId, setAssignRoleId] = useState('');
@@ -45,8 +52,9 @@ export const RoleManagementPage: React.FC = () => {
     try {
       const data = await roleService.getRoles();
       setRoles(data.roles);
-      if (data.roles.length > 0 && !assignRoleId) {
-        setAssignRoleId(data.roles[0]._id);
+      if (data.roles.length > 0) {
+        if (!assignRoleId) setAssignRoleId(data.roles[0]._id);
+        if (!provisionRoleId) setProvisionRoleId(data.roles[0]._id);
       }
       setAvailablePermissions(data.availablePermissions);
 
@@ -276,6 +284,26 @@ export const RoleManagementPage: React.FC = () => {
     }
   };
 
+  const handleProvisionUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!provisionEmail.trim() || !provisionRoleId) return;
+
+    setProvisioning(true);
+    setProvisionError('');
+    setProvisionSuccess('');
+
+    try {
+      const res = await userService.provisionUser(provisionEmail, provisionRoleId);
+      setProvisionSuccess(res.message);
+      setProvisionEmail('');
+      await fetchUsersData();
+    } catch (err: any) {
+      setProvisionError(err.response?.data?.message || 'Failed to provision user.');
+    } finally {
+      setProvisioning(false);
+    }
+  };
+
   const handleDeletePendingAssignment = async (id: string, email: string) => {
     try {
       await userService.deletePendingRoleAssignment(id);
@@ -313,7 +341,75 @@ export const RoleManagementPage: React.FC = () => {
             </div>
           )}
 
-          {/* Section 0: Assign Role by Email */}
+          {/* Section 0A: Provision New User */}
+          <div className="saas-card" style={{ padding: '1.5rem', marginBottom: '2rem', borderLeft: '4px solid #4f46e5' }}>
+            <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <UserPlus size={20} color="#4f46e5" />
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                Provision New User
+              </h3>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.1rem', marginBottom: '1rem' }}>
+              Immediately create a user account with a temporary password and send login credentials via email. The user will be required to change their password on first login.
+            </p>
+
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '0.75rem 1rem', marginBottom: '1.25rem', fontSize: '0.825rem', color: '#475569' }}>
+              <strong>Flow Info:</strong> An account will be created for this email with a temporary password. The user will receive login credentials by email and must change the password on first login.
+            </div>
+
+            {provisionError && <div className="alert alert-danger" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>{provisionError}</div>}
+            {provisionSuccess && <div className="alert alert-success" style={{ marginBottom: '1rem', fontSize: '0.85rem' }}>{provisionSuccess}</div>}
+
+            <form onSubmit={handleProvisionUser} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: '240px' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                  User Email Address
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={16} color="#64748b" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type="email"
+                    className="form-input"
+                    style={{ paddingLeft: '2.4rem', fontSize: '0.85rem' }}
+                    placeholder="user@organization.com"
+                    value={provisionEmail}
+                    onChange={(e) => setProvisionEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ width: '200px' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                  Assigned Role
+                </label>
+                <select
+                  className="form-input"
+                  style={{ fontSize: '0.85rem' }}
+                  value={provisionRoleId}
+                  onChange={(e) => setProvisionRoleId(e.target.value)}
+                >
+                  {roles.map((r) => (
+                    <option key={r._id} value={r._id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{ padding: '0.55rem 1.1rem', fontSize: '0.825rem', height: '38px', background: '#4f46e5', borderColor: '#4338ca' }}
+                disabled={provisioning || !provisionEmail.trim()}
+              >
+                <UserPlus size={15} />
+                <span>{provisioning ? 'Provisioning...' : 'Create Account & Send Credentials'}</span>
+              </button>
+            </form>
+          </div>
+
+          {/* Section 0B: Assign Role by Email (Invitation Flow) */}
           <div className="saas-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
             <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <UserPlus size={18} color="#0f172a" />
