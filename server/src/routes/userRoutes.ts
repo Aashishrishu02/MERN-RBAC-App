@@ -19,7 +19,7 @@ import { Permission } from '../models/Role';
 const router = Router();
 
 router.get('/', authenticateToken, checkPermission(Permission.MANAGE_ROLES), getUsers);
-router.post('/generate-credentials', authenticateToken, checkPermission(Permission.MANAGE_ROLES), generateCredentials);
+router.post('/generate-credentials', authenticateToken, checkPermission(Permission.MANAGE_USER_ACCOUNTS), generateCredentials);
 router.post('/provision', authenticateToken, checkPermission(Permission.MANAGE_ROLES), provisionUser);
 router.put('/:id/role', authenticateToken, checkPermission(Permission.MANAGE_ROLES), updateUserRole);
 router.post('/:id/reset-role', authenticateToken, checkPermission(Permission.MANAGE_ROLES), resetUserRole);

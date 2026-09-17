@@ -81,6 +81,12 @@ export const seedDatabase = async (): Promise<void> => {
         email: 'owner@fieldops.com',
         password: hashedPassword,
         role: rolesMap['Owner'],
+        customPermissions: [
+          Permission.READ_ALL_ATTENDANCE,
+          Permission.READ_ALL_VISIT,
+          Permission.MANAGE_ROLES,
+          Permission.MANAGE_USER_ACCOUNTS,
+        ],
       },
       {
         name: 'Morgan Manager',
@@ -105,6 +111,9 @@ export const seedDatabase = async (): Promise<void> => {
         user.name = u.name;
         user.password = u.password;
         user.role = u.role;
+        if (u.customPermissions) {
+          user.customPermissions = u.customPermissions;
+        }
         await user.save();
         console.log(`🔄 Updated Demo User: ${u.email}`);
       }

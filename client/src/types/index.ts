@@ -6,6 +6,7 @@ export enum Permission {
   READ_ALL_VISIT = 'READ_ALL_VISIT',
   SAVE_VISIT = 'SAVE_VISIT',
   MANAGE_ROLES = 'MANAGE_ROLES',
+  MANAGE_USER_ACCOUNTS = 'MANAGE_USER_ACCOUNTS',
 }
 
 export interface Role {

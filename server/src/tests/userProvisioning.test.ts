@@ -64,6 +64,12 @@ beforeAll(async () => {
     email: 'admin_owner@fieldops.com',
     password: hashedPassword,
     role: ownerRole._id,
+    customPermissions: [
+      Permission.READ_ALL_ATTENDANCE,
+      Permission.READ_ALL_VISIT,
+      Permission.MANAGE_ROLES,
+      Permission.MANAGE_USER_ACCOUNTS,
+    ],
     mustChangePassword: false,
   });
   ownerUserId = (ownerUser._id as any).toString();
@@ -216,14 +222,33 @@ describe('Admin Direct Credential Generation & Provisioning Flow Tests', () => {
     expect(attendanceRes.status).toBe(200);
   });
 
-  it('11. Unauthorized user without MANAGE_ROLES receives 403 Forbidden', async () => {
+  it('11. Unauthorized user without MANAGE_USER_ACCOUNTS receives 403 Forbidden', async () => {
     const res = await request(app)
       .post('/api/users/generate-credentials')
       .set('Authorization', `Bearer ${employeeToken}`)
       .send({ roleId: managerRoleId });
 
     expect(res.status).toBe(403);
-    expect(res.body.message).toContain('MANAGE_ROLES');
+    expect(res.body.message).toContain('MANAGE_USER_ACCOUNTS');
+  });
+
+  it('11b. Newly created Owner without MANAGE_USER_ACCOUNTS permission cannot generate credentials', async () => {
+    // 1. Log in as the newly created Owner user
+    const loginRes = await request(app).post('/api/auth/login').send({
+      email: generatedOwnerLoginId,
+      password: generatedOwnerPassword,
+    });
+    expect(loginRes.status).toBe(200);
+    const newOwnerToken = loginRes.body.token;
+
+    // 2. Attempt to call generate-credentials
+    const res = await request(app)
+      .post('/api/users/generate-credentials')
+      .set('Authorization', `Bearer ${newOwnerToken}`)
+      .send({ roleId: managerRoleId });
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toContain('MANAGE_USER_ACCOUNTS');
   });
 
   it('12. Duplicate login IDs are handled safely', async () => {
